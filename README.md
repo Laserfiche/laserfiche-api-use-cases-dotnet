@@ -14,3 +14,17 @@ dotnet new console --framework net6.0
 ```
 dotnet run
 ```
+
+### Add dependencies
+
+```
+dotnet add package Laserfiche.Oauth.Api.Client --version 1.0.0
+```
+
+```
+dotnet add package Laserfiche.Repository.Api.Client --source {absolute_path_to_folder_containing_nupkg}
+```
+
+```
+dotnet add package DotNetEnv
+```
