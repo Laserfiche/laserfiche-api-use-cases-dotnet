@@ -10,7 +10,6 @@
 
   <ItemGroup>
     <PackageReference Include="DotNetEnv" Version="2.3.0" />
-    <PackageReference Include="Laserfiche.Oauth.Api.Client" Version="1.0.0" />
     <PackageReference Include="Laserfiche.Repository.Api.Client" Version="1.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
   </ItemGroup>
