@@ -1,14 +1,36 @@
-﻿namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
+﻿using Laserfiche.Api.Client.OAuth;
+using Newtonsoft.Json;
+using System.Diagnostics;
+
+namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 {
     static class Program
     {
-        public static void Main()
+        public static async Task Main()
         {
             // Read credentials from file system
             var readConfigFileOk = Utils.LoadFromDotEnv("TestConfig.env");
             if (!readConfigFileOk)
             {
+                Trace.TraceWarning("Failed to read credentials.");
+                return;
+            }
 
+            // Read credentials from envrionment
+            var servicePrincipalKey = Environment.GetEnvironmentVariable("DEV_CA_PUBLIC_USE_TESTOAUTHSERVICEPRINCIPAL_SERVICE_PRINCIPAL_KEY");
+            var accessKey = JsonConvert.DeserializeObject<AccessKey>(Environment.GetEnvironmentVariable("DEV_CA_PUBLIC_USE_INTEGRATION_TEST_ACCESS_KEY"));
+            var repositoryId = Environment.GetEnvironmentVariable("DEV_CA_PUBLIC_USE_REPOSITORY_ID_1");
+
+            // Create the client
+            var repoClient = RepositoryApiClient.Create(servicePrincipalKey, accessKey);
+
+            var rootEntryId = 1;
+            var entryListing = await repoClient.EntriesClient.GetEntryListingAsync(repositoryId, rootEntryId);
+
+            foreach (var entry in entryListing.Value)
+            {
+                // Do something with the returned data.
+                Console.WriteLine(entry.Name);
             }
         }
     }
