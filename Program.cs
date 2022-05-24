@@ -1,7 +1,15 @@
-﻿public class Program
+﻿namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 {
-    public static void Main(string[] args)
+    static class Program
     {
-        
+        public static void Main()
+        {
+            // Read credentials from file system
+            var readConfigFileOk = Utils.LoadFromDotEnv("TestConfig.env");
+            if (!readConfigFileOk)
+            {
+
+            }
+        }
     }
 }
