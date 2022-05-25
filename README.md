@@ -1,5 +1,5 @@
-# lf-sample-repository-api-dotnet-srv
-Sample project for demonstrating how to work with our OAuth and Repository API clients.
+# Laserfiche Repository Client API Sample - Service App
+Sample project for demonstrating how to work with our Repository API client.
 
 ## Steps to recreate this projecct
 
