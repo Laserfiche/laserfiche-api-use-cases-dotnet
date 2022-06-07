@@ -2,3 +2,4 @@
 /obj
 /nuget
 *.env
+.vs

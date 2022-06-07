@@ -17,9 +17,6 @@ dotnet run
 
 ### Add dependencies
 
-```
-dotnet add package Laserfiche.Oauth.Api.Client --version 2.0.0
-```
 (Currently, we have not yet released the 2.0 version (but will be soon), for now, we can use a local nuget package using command similar to the one below.)
 
 ```
