@@ -26,9 +26,6 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
 
-    - name: Scafolding
-      run: dotnet new console --framework net6.0
-
     - name: Run sample
       env:
         ACCESS_KEY: ${{ secrets.DEV_CA_PUBLIC_USE_INTEGRATION_TEST_ACCESS_KEY }}
