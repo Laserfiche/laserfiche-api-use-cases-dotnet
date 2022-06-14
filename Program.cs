@@ -1,44 +1,58 @@
-﻿using Laserfiche.Api.Client.OAuth;
-using Newtonsoft.Json;
-using System.Diagnostics;
-using System.Text;
-
-namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
+﻿namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 {
     static class Program
     {
         public static async Task Main()
         {
-            // Read credentials from file system
-            var readConfigFileOk = Utils.LoadFromDotEnv("TestConfig.env");
-            if (!readConfigFileOk)
-            {
-                Trace.TraceWarning("Failed to read credentials.");
-                return;
-            }
-
-            // Read credentials from envrionment
-            var servicePrincipalKey = Environment.GetEnvironmentVariable("SERVICE_PRINCIPAL_KEY");
-            var base64EncodedAccessKey = Environment.GetEnvironmentVariable("ACCESS_KEY");
-            if (base64EncodedAccessKey == null)
-            {
-                throw new InvalidOperationException("Cannot continue due to missing access key.");
-            }
-            var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(base64EncodedAccessKey));
-            var accessKey = JsonConvert.DeserializeObject<AccessKey>(decoded);
-            var repositoryId = Environment.GetEnvironmentVariable("REPOSITORY_ID");
+            // Get credentials
+            var config = new ServiceConfig("TestConfig.env");
 
             // Create the client
-            var repoClient = RepositoryApiClient.Create(servicePrincipalKey, accessKey);
+            var client = RepositoryApiClient.CreateFromAccessKey(config.ServicePrincipalKey, config.AccessKey);
 
-            var rootEntryId = 1;
-            var entryListing = await repoClient.EntriesClient.GetEntryListingAsync(repositoryId, rootEntryId);
+            // Get a list of repository names
+            var repoNames = await GetRepoNames(client);
 
-            foreach (var entry in entryListing.Value)
+            // Get root entry
+            var root = await GetRootFolder(client, config.RepositoryId);
+
+            // Get folder children
+            var children = await GetFolderChildren(client, config.RepositoryId, root.Id);
+
+            // Report results
+            Console.WriteLine("Repositories:");
+            foreach (var repoName in repoNames)
             {
-                // Do something with the returned data.
-                Console.WriteLine(entry.Name);
+                Console.WriteLine($"  {repoName}");
             }
+            
+            Console.WriteLine($"Number of children of root: {children.Count}");
+            foreach (var child in children)
+            {
+                Console.WriteLine($"Child name: ${child.Name}\nChild type: ${child.EntryType}\n");
+            }
+        }
+
+        public static async Task<List<string>> GetRepoNames(IRepositoryApiClient client)
+        {
+            var repoInfoCollection = await client.RepositoriesClient.GetRepositoryListAsync();
+            var repoNames = new List<string>();
+            foreach (var repoInfo in repoInfoCollection)
+            {
+                repoNames.Add(repoInfo.RepoName);
+            }
+            return repoNames;
+        }
+
+        public static async Task<Entry> GetRootFolder(IRepositoryApiClient client, string repoId)
+        {
+            return await client.EntriesClient.GetEntryAsync(repoId, 1);
+        }
+
+        public static async Task<ICollection<Entry>> GetFolderChildren(IRepositoryApiClient client, string repoId, int entryId)
+        {
+            var children = await client.EntriesClient.GetEntryListingAsync(repoId, entryId);
+            return children.Value;
         }
     }
 }

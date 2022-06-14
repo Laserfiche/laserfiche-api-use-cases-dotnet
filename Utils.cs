@@ -6,7 +6,9 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
     {
         internal static bool LoadFromDotEnv(string fileName)
         {
-            var path = Path.Combine(Environment.CurrentDirectory, fileName);
+            var workingDir = Environment.CurrentDirectory;
+            var projectDir = Directory.GetParent(workingDir).Parent.Parent.FullName;
+            var path = Path.Combine(projectDir, fileName);
             if (path == null)
             {
                 Trace.TraceWarning($"The path is null.");
