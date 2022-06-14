@@ -1,11 +1,7 @@
 ﻿using Laserfiche.Api.Client.OAuth;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 {
