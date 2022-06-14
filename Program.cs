@@ -8,16 +8,45 @@
             var config = new ServiceConfig("TestConfig.env");
 
             // Create the client
-            var repoClient = RepositoryApiClient.Create(config.ServicePrincipalKey, config.AccessKey);
+            var client = RepositoryApiClient.Create(config.ServicePrincipalKey, config.AccessKey);
 
-            var rootEntryId = 1;
-            var entryListing = await repoClient.EntriesClient.GetEntryListingAsync(config.RepositoryId, rootEntryId);
+            // Get a list of repository names
+            var repoNames = await GetRepoNames(client);
 
-            foreach (var entry in entryListing.Value)
+            // Get root entry
+            var root = await GetRootFolder(client, config.RepositoryId);
+
+            // Get folder children
+            var children = await GetFolderChildren(client, config.RepositoryId, root.Id);
+
+            // Report results
+            Console.WriteLine($"Repository name: {repoNames}\nRoot entry name: {root.Name}\nNumber of children: {children.Count}");
+            foreach (var child in children)
             {
-                // Do something with the returned data.
-                Console.WriteLine(entry.Name);
+                Console.WriteLine($"Child name: ${child.Name}\nChild type: ${child.EntryType}\n");
             }
+        }
+
+        public static async Task<List<string>> GetRepoNames(IRepositoryApiClient client)
+        {
+            var repoInfoCollection = await client.RepositoriesClient.GetRepositoryListAsync();
+            var repoNames = new List<string>();
+            foreach (var repoInfo in repoInfoCollection)
+            {
+                repoNames.Add(repoInfo.RepoName);
+            }
+            return repoNames;
+        }
+
+        public static async Task<Entry> GetRootFolder(IRepositoryApiClient client, string repoId)
+        {
+            return await client.EntriesClient.GetEntryAsync(repoId, 1);
+        }
+
+        public static async Task<ICollection<Entry>> GetFolderChildren(IRepositoryApiClient client, string repoId, int entryId)
+        {
+            var children = await client.EntriesClient.GetEntryListingAsync(repoId, entryId);
+            return children.Value;
         }
     }
 }
