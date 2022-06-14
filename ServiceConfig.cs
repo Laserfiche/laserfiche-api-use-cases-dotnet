@@ -20,7 +20,6 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             if (!readConfigFileOk)
             {
                 Trace.TraceWarning("Failed to read credentials.");
-                return;
             }
 
             // Read credentials from envrionment
