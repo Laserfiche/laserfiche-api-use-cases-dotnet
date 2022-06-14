@@ -8,7 +8,7 @@
             var config = new ServiceConfig("TestConfig.env");
 
             // Create the client
-            var client = RepositoryApiClient.Create(config.ServicePrincipalKey, config.AccessKey);
+            var client = RepositoryApiClient.CreateFromAccessKey(config.ServicePrincipalKey, config.AccessKey);
 
             // Get a list of repository names
             var repoNames = await GetRepoNames(client);
