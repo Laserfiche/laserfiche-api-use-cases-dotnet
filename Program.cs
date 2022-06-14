@@ -20,7 +20,13 @@
             var children = await GetFolderChildren(client, config.RepositoryId, root.Id);
 
             // Report results
-            Console.WriteLine($"Repository name: {repoNames}\nRoot entry name: {root.Name}\nNumber of children: {children.Count}");
+            Console.WriteLine("Repositories:");
+            foreach (var repoName in repoNames)
+            {
+                Console.WriteLine($"  {repoName}");
+            }
+            
+            Console.WriteLine($"Number of children of root: {children.Count}");
             foreach (var child in children)
             {
                 Console.WriteLine($"Child name: ${child.Name}\nChild type: ${child.EntryType}\n");
