@@ -1,4 +1,8 @@
-﻿namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 {
     static class Program
     {
@@ -8,10 +12,20 @@
             var config = new ServiceConfig("TestConfig.env");
 
             // Create the client
-            var client = RepositoryApiClient.CreateFromAccessKey(config.ServicePrincipalKey, config.AccessKey);
+            IRepositoryApiClient client;
+            client = RepositoryApiClient.CreateFromAccessKey(config.ServicePrincipalKey, config.AccessKey);
 
-            // Get a list of repository names
-            var repoNames = await GetRepoNames(client);
+            if (config.AuthorizationType.Equals("LfdsUsernamePassword", StringComparison.OrdinalIgnoreCase))
+            {
+                client = RepositoryApiClient.CreateFromLfdsUsernamePassword(config.Username, config.Password, config.Organization, config.RepositoryId, config.BaseUrl);
+            }
+            else if (config.AuthorizationType.Equals("AccessKey", StringComparison.OrdinalIgnoreCase))
+            {
+                client = RepositoryApiClient.CreateFromAccessKey(config.ServicePrincipalKey, config.AccessKey);
+            }
+
+            // Get a list of repository names (currently not available)
+            // var repoNames = await GetRepoNames(client);
 
             // Get root entry
             var root = await GetRootFolder(client, config.RepositoryId);
@@ -20,12 +34,12 @@
             var children = await GetFolderChildren(client, config.RepositoryId, root.Id);
 
             // Report results
-            Console.WriteLine("Repositories:");
-            foreach (var repoName in repoNames)
-            {
-                Console.WriteLine($"  {repoName}");
-            }
-            
+            //Console.WriteLine("Repositories:");
+            //foreach (var repoName in repoNames)
+            //{
+            //    Console.WriteLine($"  {repoName}");
+            //}
+
             Console.WriteLine($"Number of children of root: {children.Count}");
             foreach (var child in children)
             {
