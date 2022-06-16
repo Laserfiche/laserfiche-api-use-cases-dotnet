@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
@@ -13,7 +14,6 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 
             // Create the client
             IRepositoryApiClient client;
-            client = RepositoryApiClient.CreateFromAccessKey(config.ServicePrincipalKey, config.AccessKey);
 
             if (config.AuthorizationType.Equals("LfdsUsernamePassword", StringComparison.OrdinalIgnoreCase))
             {
@@ -23,9 +23,14 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             {
                 client = RepositoryApiClient.CreateFromAccessKey(config.ServicePrincipalKey, config.AccessKey);
             }
+            else
+            {
+                Trace.TraceWarning("Invalid value for authorization type.");
+                return;
+            }
 
             // Get a list of repository names (currently not available)
-            // var repoNames = await GetRepoNames(client);
+            var repoNames = await GetRepoNames(client);
 
             // Get root entry
             var root = await GetRootFolder(client, config.RepositoryId);
@@ -34,11 +39,11 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             var children = await GetFolderChildren(client, config.RepositoryId, root.Id);
 
             // Report results
-            //Console.WriteLine("Repositories:");
-            //foreach (var repoName in repoNames)
-            //{
-            //    Console.WriteLine($"  {repoName}");
-            //}
+            Console.WriteLine("Repositories:");
+            foreach (var repoName in repoNames)
+            {
+                Console.WriteLine($"  {repoName}");
+            }
 
             Console.WriteLine($"Number of children of root: {children.Count}");
             foreach (var child in children)
