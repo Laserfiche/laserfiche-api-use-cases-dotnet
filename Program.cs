@@ -25,7 +25,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             }
             else
             {
-                Trace.TraceWarning("Invalid value for authorization type.");
+                Trace.TraceWarning("Invalid value for AUTHORIZATION_TYPE. It can only be 'AccessKey' or 'LfdsUsernamePassword'.");
                 return;
             }
 
