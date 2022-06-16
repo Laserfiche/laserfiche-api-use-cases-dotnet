@@ -1,6 +1,6 @@
 ﻿using Laserfiche.Api.Client.OAuth;
 using Newtonsoft.Json;
-using System.Diagnostics;
+using System;
 using System.Text;
 
 namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
@@ -19,7 +19,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             var readConfigFileOk = Utils.LoadFromDotEnv(filename);
             if (!readConfigFileOk)
             {
-                Trace.TraceWarning("Failed to read credentials.");
+                Console.WriteLine("Failed to read credentials.");
             }
 
             // Read credentials from envrionment
