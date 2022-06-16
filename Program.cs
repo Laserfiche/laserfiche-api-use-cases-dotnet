@@ -24,11 +24,29 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 
                 // Get folder children
                 var children = await GetFolderChildren(client, config.RepositoryId, root.Id);
+
+                // Get search results
+                var searchResults = await Search(client, config.RepositoryId);
             }
             catch (Exception e)
             {
                 Console.Error.Write(e);
             }
+        }
+
+        public static async Task<ICollection<Entry>> Search(IRepositoryApiClient client, string repoId)
+        {
+            var searchRequest = new SimpleSearchRequest()
+            {
+                SearchCommand = "{LF:Basic ~= \"Laserfiche Cloud Overview\", option=\"NLT\"}"
+            };
+            var searchResults = await client.SimpleSearchesClient.CreateSimpleSearchOperationAsync(repoId, request: searchRequest);
+            Console.WriteLine("Search Results:");
+            foreach (var searchResult in searchResults.Value)
+            {
+                Console.WriteLine($"  {searchResult.Name}");
+            }
+            return searchResults.Value;
         }
 
         public static async Task<List<string>> GetRepoNames(IRepositoryApiClient client)
