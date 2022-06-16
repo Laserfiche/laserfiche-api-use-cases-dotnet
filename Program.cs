@@ -47,7 +47,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         public static async Task<Entry> GetRootFolder(IRepositoryApiClient client, string repoId)
         {
             var entry = await client.EntriesClient.GetEntryAsync(repoId, 1);
-            Console.WriteLine($"Root Folder Name: '{entry.Name}'");
+            Console.WriteLine($"Root Folder Path: '{entry.FullPath}'");
             return entry;
         }
 
