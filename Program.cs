@@ -31,15 +31,17 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             }
         }
 
-        public static async Task<ICollection<RepositoryInfo>> GetRepoNames(IRepositoryApiClient client)
+        public static async Task<List<string>> GetRepoNames(IRepositoryApiClient client)
         {
             var repoInfoCollection = await client.RepositoriesClient.GetRepositoryListAsync();
+            var repoNames = new List<string>();
             Console.WriteLine("Repositories:");
             foreach (var repoInfo in repoInfoCollection)
             {
+                repoNames.Add(repoInfo.RepoName);
                 Console.WriteLine($"  {repoInfo.RepoName}");
             }
-            return repoInfoCollection;
+            return repoNames;
         }
 
         public static async Task<Entry> GetRootFolder(IRepositoryApiClient client, string repoId)
