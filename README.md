@@ -14,32 +14,32 @@ Sample .NET core service app that connects to a Laserfiche Cloud Repository usin
 
 #### 1. Create a Service Principal
 
-- Login to account using web client as an administrator
-- Using the app picker, go to the account page
-- Click on the service principal tab
+- Log in to your account using Web Client as an administrator
+- Using the app picker, go to the 'Account' page
+- Click on the 'Service Principals' tab
 - Click on the 'Add Service Principal' button to create an account to be used to run this sample service
-- Add access rights to the repository and click create
-- View the created service principal and click on 'Create Service Principal Key(s)'
-- Save the key for later use
+- Add access rights to the repository and click the 'Create' button
+- View the created service principal and click on the 'Create Service Principal Key(s)' button
+- Save the Service Principal Key for later use
 
 #### 2. Create an OAuth Service App
 
 - Navigate to [Laserfiche Developer Console](https://app.laserfiche.com/devconsole/)
-- Click on 'New' -> 'Create a new app'
-- Select 'Service', enter a name
-- Select the app service account to be the one created on step 1 and click save
-- Click on the 'Authentication' Tab and create a new AccessKey
+- Click on the 'New' button and choose the 'Create a new app' option
+- Select the 'Service' option, enter a name, and click the 'Create application' button
+- Select the app service account to be the one created on step 1 and click the 'Save changes' button
+- Click on the 'Authentication' Tab and create a new Access Key
 - Click the 'Download key as base-64 string' button for later use
 
 #### 3. Create a .env file
 
 - Using the app picker, go to the 'Repository Administration' page and copy the Repository ID
-- In the root directory of this project, create an .env file containing the following lines:
+- In the root directory of this project, create a .env file containing the following lines:
 
 ```bash
 SERVICE_PRINCIPAL_KEY="<Service Principal Key created from step 1>"
 
-ACCESS_KEY="<base-64 AccessKey string created from step 2>"
+ACCESS_KEY="<base-64 Access Key string created from step 2>"
 
 REPOSITORY_ID="<Repository ID from the 'Repository Administration' page>"
 ```
