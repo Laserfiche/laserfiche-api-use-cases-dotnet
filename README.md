@@ -14,7 +14,10 @@ Sample .NET core service app that connects to a Laserfiche Cloud Repository usin
 
 #### 1. Create a Service Principal
 
-- Log in to your account using Web Client as an administrator
+- Log in to your account using Web Client as an administrator:
+  - [CA Cloud](https://app.laserfiche.ca/laserfiche)
+  - [EU Cloud](https://app.eu.laserfiche.com/laserfiche)
+  - [US Cloud](https://app.laserfiche.com/laserfiche)
 - Using the app picker, go to the 'Account' page
 - Click on the 'Service Principals' tab
 - Click on the 'Add Service Principal' button to create an account to be used to run this sample service
@@ -24,7 +27,10 @@ Sample .NET core service app that connects to a Laserfiche Cloud Repository usin
 
 #### 2. Create an OAuth Service App
 
-- Navigate to [Laserfiche Developer Console](https://app.laserfiche.com/devconsole/)
+- Navigate to Laserfiche Developer Console:
+  - [CA Cloud](https://app.laserfiche.ca/devconsole/)
+  - [EU Cloud](https://app.eu.laserfiche.com/devconsole/)
+  - [US Cloud](https://app.laserfiche.com/devconsole/)
 - Click on the 'New' button and choose the 'Create a new app' option
 - Select the 'Service' option, enter a name, and click the 'Create application' button
 - Select the app service account to be the one created on step 1 and click the 'Save changes' button
