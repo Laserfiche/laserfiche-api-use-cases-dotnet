@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
@@ -14,22 +13,27 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 // Get credentials
                 var config = new ServiceConfig(".env");
 
-            // Create the client
-            IRepositoryApiClient client;
+                // Create the client
+                IRepositoryApiClient client;
 
-            if (config.AuthorizationType.Equals("LfdsUsernamePassword", StringComparison.OrdinalIgnoreCase))
-            {
-                client = RepositoryApiClient.CreateFromLfdsUsernamePassword(config.Username, config.Password, config.Organization, config.RepositoryId, config.BaseUrl);
-            }
-            else if (config.AuthorizationType.Equals("AccessKey", StringComparison.OrdinalIgnoreCase))
-            {
-                client = RepositoryApiClient.CreateFromAccessKey(config.ServicePrincipalKey, config.AccessKey);
-            }
-            else
-            {
-                Trace.TraceWarning("Invalid value for AUTHORIZATION_TYPE. It can only be 'AccessKey' or 'LfdsUsernamePassword'.");
-                return;
-            }
+                if (string.IsNullOrEmpty(config.AuthorizationType))
+                {
+                    throw new ArgumentException("Environment variable 'AUTHORIZATION_TYPE' does not exist. It must be present and its value can only be 'AccessKey' or 'LfdsUsernamePassword'.");
+                }
+
+                if (config.AuthorizationType.Equals("AccessKey", StringComparison.OrdinalIgnoreCase))
+                {
+                    client = RepositoryApiClient.CreateFromAccessKey(config.ServicePrincipalKey, config.AccessKey);
+                }
+                else if (config.AuthorizationType.Equals("LfdsUsernamePassword", StringComparison.OrdinalIgnoreCase))
+                {
+                    client = RepositoryApiClient.CreateFromLfdsUsernamePassword(config.Username, config.Password, config.Organization, config.RepositoryId, config.BaseUrl);
+                }
+                else
+                {
+                    Console.WriteLine("Invalid value for 'AUTHORIZATION_TYPE'. It can only be 'AccessKey' or 'LfdsUsernamePassword'.");
+                    return;
+                }
 
                 // Get a list of repository names
                 var repoNames = await GetRepoNames(client);
