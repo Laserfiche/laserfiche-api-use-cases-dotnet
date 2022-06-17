@@ -14,7 +14,21 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 var config = new ServiceConfig(".env");
 
                 // Create the client
-                var client = RepositoryApiClient.CreateFromAccessKey(config.ServicePrincipalKey, config.AccessKey);
+                IRepositoryApiClient client;
+
+                if (config.AuthorizationType.Equals("AccessKey", StringComparison.OrdinalIgnoreCase))
+                {
+                    client = RepositoryApiClient.CreateFromAccessKey(config.ServicePrincipalKey, config.AccessKey);
+                }
+                else if (config.AuthorizationType.Equals("LfdsUsernamePassword", StringComparison.OrdinalIgnoreCase))
+                {
+                    client = RepositoryApiClient.CreateFromLfdsUsernamePassword(config.Username, config.Password, config.Organization, config.RepositoryId, config.BaseUrl);
+                }
+                else
+                {
+                    Console.WriteLine("Invalid value for 'AUTHORIZATION_TYPE'. It can only be 'AccessKey' or 'LfdsUsernamePassword'.");
+                    return;
+                }
 
                 // Get a list of repository names
                 var repoNames = await GetRepoNames(client);
