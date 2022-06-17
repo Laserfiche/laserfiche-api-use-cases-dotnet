@@ -1,4 +1,5 @@
-using System.Diagnostics;
+using System;
+using System.IO;
 
 namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 {
@@ -6,19 +7,19 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
     {
         internal static bool LoadFromDotEnv(string fileName)
         {
-            var workingDir = Environment.CurrentDirectory;
-            var projectDir = Directory.GetParent(workingDir).Parent.Parent.FullName;
+            var binFolder = AppDomain.CurrentDomain.BaseDirectory;
+            var projectDir = Directory.GetParent(binFolder)?.Parent?.Parent?.Parent?.FullName;
             var path = Path.Combine(projectDir, fileName);
             if (path == null)
             {
-                Trace.TraceWarning($"The path is null.");
+                Console.WriteLine($"The path is null.");
                 return false;
             }
             else
             {
                 if (!File.Exists(path))
                 {
-                    Trace.TraceWarning($"{fileName} not found.");
+                    Console.WriteLine($"{fileName} not found.");
                     return false;
                 }
             }
@@ -27,7 +28,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 clobberExistingVars: true,
                 onlyExactPath: true
             ));
-            Trace.TraceWarning($"{fileName} found. {fileName} file should only be used in local developer computers.");
+            Console.WriteLine($"{fileName} found. {fileName} file should only be used in local developer computers.");
             return true;
         }
     }

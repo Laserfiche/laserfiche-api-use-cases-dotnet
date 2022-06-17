@@ -9,8 +9,10 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
     {
         public static async Task Main()
         {
-            // Get credentials
-            var config = new ServiceConfig("TestConfig.env");
+            try
+            {
+                // Get credentials
+                var config = new ServiceConfig(".env");
 
             // Create the client
             IRepositoryApiClient client;
@@ -29,26 +31,18 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 return;
             }
 
-            // Get a list of repository names (currently not available)
-            var repoNames = await GetRepoNames(client);
+                // Get a list of repository names
+                var repoNames = await GetRepoNames(client);
 
-            // Get root entry
-            var root = await GetRootFolder(client, config.RepositoryId);
+                // Get root entry
+                var root = await GetRootFolder(client, config.RepositoryId);
 
-            // Get folder children
-            var children = await GetFolderChildren(client, config.RepositoryId, root.Id);
-
-            // Report results
-            Console.WriteLine("Repositories:");
-            foreach (var repoName in repoNames)
-            {
-                Console.WriteLine($"  {repoName}");
+                // Get folder children
+                var children = await GetFolderChildren(client, config.RepositoryId, root.Id);
             }
-
-            Console.WriteLine($"Number of children of root: {children.Count}");
-            foreach (var child in children)
+            catch (Exception e)
             {
-                Console.WriteLine($"Child name: ${child.Name}\nChild type: ${child.EntryType}\n");
+                Console.Error.Write(e);
             }
         }
 
@@ -56,21 +50,30 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         {
             var repoInfoCollection = await client.RepositoriesClient.GetRepositoryListAsync();
             var repoNames = new List<string>();
+            Console.WriteLine("Repositories:");
             foreach (var repoInfo in repoInfoCollection)
             {
                 repoNames.Add(repoInfo.RepoName);
+                Console.WriteLine($"  {repoInfo.RepoName}");
             }
             return repoNames;
         }
 
         public static async Task<Entry> GetRootFolder(IRepositoryApiClient client, string repoId)
         {
-            return await client.EntriesClient.GetEntryAsync(repoId, 1);
+            var entry = await client.EntriesClient.GetEntryAsync(repoId, 1);
+            Console.WriteLine($"Root Folder Path: '{entry.FullPath}'");
+            return entry;
         }
 
         public static async Task<ICollection<Entry>> GetFolderChildren(IRepositoryApiClient client, string repoId, int entryId)
         {
             var children = await client.EntriesClient.GetEntryListingAsync(repoId, entryId);
+            Console.WriteLine($"Number of children of root: {children.Value.Count}");
+            foreach (var child in children.Value)
+            {
+                Console.WriteLine($"Child name: ${child.Name}\nChild type: ${child.EntryType}\n");
+            }
             return children.Value;
         }
     }

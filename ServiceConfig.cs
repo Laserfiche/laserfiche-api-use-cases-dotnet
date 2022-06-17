@@ -25,7 +25,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             var readConfigFileOk = Utils.LoadFromDotEnv(filename);
             if (!readConfigFileOk)
             {
-                Trace.TraceWarning("Failed to read credentials.");
+                Console.WriteLine("Failed to read credentials.");
             }
 
             // Read credentials from envrionment

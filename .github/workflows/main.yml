@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-n-run:
+  build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
@@ -25,10 +25,3 @@ jobs:
 
     - name: Build
       run: dotnet build --no-restore
-
-    - name: Run sample
-      env:
-        ACCESS_KEY: ${{ secrets.DEV_CA_PUBLIC_USE_INTEGRATION_TEST_ACCESS_KEY }}
-        SERVICE_PRINCIPAL_KEY:  ${{ secrets.DEV_CA_PUBLIC_USE_TESTOAUTHSERVICEPRINCIPAL_SERVICE_PRINCIPAL_KEY }}
-        REPOSITORY_ID:  ${{ secrets.DEV_CA_PUBLIC_USE_REPOSITORY_ID_3 }}
-      run: dotnet run
