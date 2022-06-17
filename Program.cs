@@ -68,11 +68,11 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 
         public static async Task<ICollection<Entry>> GetFolderChildren(IRepositoryApiClient client, string repoId, int entryId)
         {
-            var children = await client.EntriesClient.GetEntryListingAsync(repoId, entryId);
-            Console.WriteLine($"Number of children of root: {children.Value.Count}");
+            var children = await client.EntriesClient.GetEntryListingAsync(repoId, entryId, orderby: "name", groupByEntryType: true);
+            Console.WriteLine($"Number of entries returned: {children.Value.Count}");
             foreach (var child in children.Value)
             {
-                Console.WriteLine($"Child name: ${child.Name}\nChild type: ${child.EntryType}\n");
+                Console.WriteLine($"Child name: {child.Name}\nChild type: {child.EntryType}\n");
             }
             return children.Value;
         }
