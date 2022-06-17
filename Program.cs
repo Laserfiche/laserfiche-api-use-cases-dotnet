@@ -16,11 +16,6 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 // Create the client
                 IRepositoryApiClient client;
 
-                if (string.IsNullOrEmpty(config.AuthorizationType))
-                {
-                    throw new ArgumentException("Environment variable 'AUTHORIZATION_TYPE' does not exist. It must be present and its value can only be 'AccessKey' or 'LfdsUsernamePassword'.");
-                }
-
                 if (config.AuthorizationType.Equals("AccessKey", StringComparison.OrdinalIgnoreCase))
                 {
                     client = RepositoryApiClient.CreateFromAccessKey(config.ServicePrincipalKey, config.AccessKey);

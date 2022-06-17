@@ -42,6 +42,11 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             BaseUrl = Environment.GetEnvironmentVariable("SELFHOSTED_REPOSITORY_API_BASE_URI");
             Organization = Environment.GetEnvironmentVariable("LFDS_ORGANIZATION");
             AuthorizationType = Environment.GetEnvironmentVariable("AUTHORIZATION_TYPE");
+
+            if (string.IsNullOrEmpty(AuthorizationType))
+            {
+                throw new ArgumentException("Environment variable 'AUTHORIZATION_TYPE' does not exist. It must be present and its value can only be 'AccessKey' or 'LfdsUsernamePassword'.");
+            }
         }
     }
 }
