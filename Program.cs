@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
@@ -30,8 +31,8 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                     return;
                 }
 
-                // Get a list of repository names
-                var repoNames = await GetRepoNames(client);
+                // Get the name of the first repository
+                var repoNames = await GetRepositoryName(client);
 
                 // Get root entry
                 var root = await GetRootFolder(client, config.RepositoryId);
@@ -45,17 +46,12 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             }
         }
 
-        public static async Task<List<string>> GetRepoNames(IRepositoryApiClient client)
+        public static async Task<string> GetRepositoryName(IRepositoryApiClient client)
         {
-            var repoInfoCollection = await client.RepositoriesClient.GetRepositoryListAsync();
-            var repoNames = new List<string>();
-            Console.WriteLine("Repositories:");
-            foreach (var repoInfo in repoInfoCollection)
-            {
-                repoNames.Add(repoInfo.RepoName);
-                Console.WriteLine($"  {repoInfo.RepoName}");
-            }
-            return repoNames;
+            var repositoryInfoCollection = await client.RepositoriesClient.GetRepositoryListAsync();
+            var firstRepository = repositoryInfoCollection.First();
+            Console.WriteLine($"Repository Name: '{firstRepository.RepoName} [{firstRepository.RepoId}]'");
+            return firstRepository.RepoName;
         }
 
         public static async Task<Entry> GetRootFolder(IRepositoryApiClient client, string repoId)
