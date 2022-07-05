@@ -1,0 +1,10 @@
+# Any file not git-ignored that is a text file (non-binary) will have LF as line ending.
+# Note:
+# Working tree: not affected. But if you check it out again, it will be in LF line ending.
+# Index & repository: line endings will be in LF even if working tree is in CRLF.
+* text=auto
+
+# Windows scripts will be stored with line ending LF, they will always be checked out with CRLF.
+# Note: existing working tree remains untouched.
+*.{cmd,[cC][mM][dD]} text eol=crlf
+*.{bat,[bB][aA][tT]} text eol=crlf
