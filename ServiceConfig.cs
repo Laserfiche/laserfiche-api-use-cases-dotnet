@@ -43,8 +43,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 {
                     throw new InvalidOperationException("Cannot continue due to missing access key.");
                 }
-                var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(base64EncodedAccessKey));
-                AccessKey = JsonConvert.DeserializeObject<AccessKey>(decoded);
+                AccessKey = AccessKey.CreateFromBase64EncodedAccessKey(base64EncodedAccessKey);
             }
             else if (AuthorizationType.Equals("LfdsUsernamePassword", StringComparison.OrdinalIgnoreCase))
             {
