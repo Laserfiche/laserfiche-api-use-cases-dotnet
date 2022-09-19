@@ -13,8 +13,8 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         public string Username { get; set; }
         public string Password { get; set; }
         public string BaseUrl { get; set; }
-        public string Organization { get; set; }
         public string AuthorizationType { get; set; }
+        public string GrantType { get; set; }
 
         public ServiceConfig(string filename)
         {
@@ -29,7 +29,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             AuthorizationType = Environment.GetEnvironmentVariable("AUTHORIZATION_TYPE");
             if (string.IsNullOrEmpty(AuthorizationType))
             {
-                throw new InvalidOperationException("Environment variable 'AUTHORIZATION_TYPE' does not exist. It must be present and its value can only be 'AccessKey' or 'LfdsUsernamePassword'.");
+                throw new InvalidOperationException("Environment variable 'AUTHORIZATION_TYPE' does not exist. It must be present and its value can only be 'AccessKey' or 'SelfHostedUsernamePassword'.");
             }
 
             RepositoryId = Environment.GetEnvironmentVariable("REPOSITORY_ID");
@@ -45,12 +45,12 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 }
                 AccessKey = AccessKey.CreateFromBase64EncodedAccessKey(base64EncodedAccessKey);
             }
-            else if (AuthorizationType.Equals("LfdsUsernamePassword", StringComparison.OrdinalIgnoreCase))
+            else if (AuthorizationType.Equals("SelfHostedUsernamePassword", StringComparison.OrdinalIgnoreCase))
             {
-                Username = Environment.GetEnvironmentVariable("LFDS_USERNAME");
-                Password = Environment.GetEnvironmentVariable("LFDS_PASSWORD");
+                Username = Environment.GetEnvironmentVariable("SELFHOSTED_USERNAME");
+                Password = Environment.GetEnvironmentVariable("SELFHOSTED_PASSWORD");
                 BaseUrl = Environment.GetEnvironmentVariable("SELFHOSTED_REPOSITORY_API_BASE_URI");
-                Organization = Environment.GetEnvironmentVariable("LFDS_ORGANIZATION");
+                GrantType = Environment.GetEnvironmentVariable("GRANT_TYPE");
             }
         }
     }

@@ -21,13 +21,13 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 {
                     client = RepositoryApiClient.CreateFromAccessKey(config.ServicePrincipalKey, config.AccessKey);
                 }
-                else if (config.AuthorizationType.Equals("LfdsUsernamePassword", StringComparison.OrdinalIgnoreCase))
+                else if (config.AuthorizationType.Equals("SelfHostedUsernamePassword", StringComparison.OrdinalIgnoreCase))
                 {
-                    client = RepositoryApiClient.CreateFromLfdsUsernamePassword(config.Username, config.Password, config.Organization, config.RepositoryId, config.BaseUrl);
+                    client = RepositoryApiClient.CreateFromSelfHostedUsernamePassword(config.Username, config.Password, config.GrantType, config.RepositoryId, config.BaseUrl);
                 }
                 else
                 {
-                    Console.WriteLine("Invalid value for 'AUTHORIZATION_TYPE'. It can only be 'AccessKey' or 'LfdsUsernamePassword'.");
+                    Console.WriteLine("Invalid value for 'AUTHORIZATION_TYPE'. It can only be 'AccessKey' or 'SelfHostedUsernamePassword'.");
                     return;
                 }
 
