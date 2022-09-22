@@ -13,8 +13,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         public string Username { get; set; }
         public string Password { get; set; }
         public string BaseUrl { get; set; }
-        public string AuthorizationType { get; set; }
-        public string GrantType { get; set; }
+        public string TestEnvironment { get; set; }
 
         public ServiceConfig(string filename)
         {
@@ -26,15 +25,15 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             }
 
             // Read credentials from envrionment
-            AuthorizationType = Environment.GetEnvironmentVariable("AUTHORIZATION_TYPE");
-            if (string.IsNullOrEmpty(AuthorizationType))
+            TestEnvironment = Environment.GetEnvironmentVariable("API_ENVIRONMENT_UNDER_TEST");
+            if (string.IsNullOrEmpty(TestEnvironment))
             {
-                throw new InvalidOperationException("Environment variable 'AUTHORIZATION_TYPE' does not exist. It must be present and its value can only be 'AccessKey' or 'SelfHostedUsernamePassword'.");
+                throw new InvalidOperationException("Environment variable 'API_ENVIRONMENT_UNDER_TEST' does not exist. It must be present and its value can only be 'CloudClientCredentials' or 'APIServerUsernamePassword'.");
             }
 
             RepositoryId = Environment.GetEnvironmentVariable("REPOSITORY_ID");
 
-            if (AuthorizationType.Equals("AccessKey", StringComparison.OrdinalIgnoreCase))
+            if (TestEnvironment.Equals("CloudClientCredentials", StringComparison.OrdinalIgnoreCase))
             {
                 ServicePrincipalKey = Environment.GetEnvironmentVariable("SERVICE_PRINCIPAL_KEY");
 
@@ -45,12 +44,12 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 }
                 AccessKey = AccessKey.CreateFromBase64EncodedAccessKey(base64EncodedAccessKey);
             }
-            else if (AuthorizationType.Equals("SelfHostedUsernamePassword", StringComparison.OrdinalIgnoreCase))
+            else if (TestEnvironment.Equals("APIServerUsernamePassword", StringComparison.OrdinalIgnoreCase))
             {
-                Username = Environment.GetEnvironmentVariable("SELFHOSTED_USERNAME");
-                Password = Environment.GetEnvironmentVariable("SELFHOSTED_PASSWORD");
-                BaseUrl = Environment.GetEnvironmentVariable("SELFHOSTED_REPOSITORY_API_BASE_URI");
-                GrantType = Environment.GetEnvironmentVariable("GRANT_TYPE");
+                Username = Environment.GetEnvironmentVariable("APISERVER_USERNAME");
+                Password = Environment.GetEnvironmentVariable("APISERVER_PASSWORD");
+                BaseUrl = Environment.GetEnvironmentVariable("APISERVER_REPOSITORY_API_BASE_URL");
+                TestEnvironment = Environment.GetEnvironmentVariable("API_ENVIRONMENT_UNDER_TEST");
             }
         }
     }
