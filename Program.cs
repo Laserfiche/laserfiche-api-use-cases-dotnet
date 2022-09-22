@@ -17,17 +17,17 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 // Create the client
                 IRepositoryApiClient client;
 
-                if (config.TestEnvironment.Equals("CloudClientCredentials", StringComparison.OrdinalIgnoreCase))
+                if (config.AuthorizationType.Equals("CloudAccessKey", StringComparison.OrdinalIgnoreCase))
                 {
                     client = RepositoryApiClient.CreateFromAccessKey(config.ServicePrincipalKey, config.AccessKey);
                 }
-                else if (config.TestEnvironment.Equals("APIServerUsernamePassword", StringComparison.OrdinalIgnoreCase))
+                else if (config.AuthorizationType.Equals("APIServerUsernamePassword", StringComparison.OrdinalIgnoreCase))
                 {
                     client = RepositoryApiClient.CreateFromUsernamePassword(config.RepositoryId, config.Username, config.Password, config.BaseUrl);
                 }
                 else
                 {
-                    Console.WriteLine("Invalid value for 'API_ENVIRONMENT_UNDER_TEST'. It can only be 'CloudClientCredentials' or 'APIServerUsernamePassword'.");
+                    Console.WriteLine("Invalid value for 'AUTHORIZATION_TYPE'. It can only be 'CloudAccessKey' or 'APIServerUsernamePassword'.");
                     return;
                 }
 

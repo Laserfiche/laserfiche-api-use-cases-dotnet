@@ -49,7 +49,7 @@ ACCESS_KEY="<base-64 Access Key string created from step 2>"
 
 REPOSITORY_ID="<Repository ID from the 'Repository Administration' page>"
 
-API_ENVIRONMENT_UNDER_TEST="CloudClientCredentials"
+AUTHORIZATION_TYPE="CloudAccessKey"
 ```
 
 - Note: The .env file is used in local development environment to set operating system environment variables. DO NOT check-in the .env file in Git 
