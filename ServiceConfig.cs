@@ -1,7 +1,5 @@
 ﻿using Laserfiche.Api.Client.OAuth;
-using Newtonsoft.Json;
 using System;
-using System.Text;
 
 namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 {
@@ -13,7 +11,6 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         public string Username { get; set; }
         public string Password { get; set; }
         public string BaseUrl { get; set; }
-        public string Organization { get; set; }
         public string AuthorizationType { get; set; }
 
         public ServiceConfig(string filename)
@@ -29,12 +26,12 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             AuthorizationType = Environment.GetEnvironmentVariable("AUTHORIZATION_TYPE");
             if (string.IsNullOrEmpty(AuthorizationType))
             {
-                throw new InvalidOperationException("Environment variable 'AUTHORIZATION_TYPE' does not exist. It must be present and its value can only be 'AccessKey' or 'LfdsUsernamePassword'.");
+                throw new InvalidOperationException("Environment variable 'AUTHORIZATION_TYPE' does not exist. It must be present and its value can only be 'CloudAccessKey' or 'APIServerUsernamePassword'.");
             }
 
             RepositoryId = Environment.GetEnvironmentVariable("REPOSITORY_ID");
 
-            if (AuthorizationType.Equals("AccessKey", StringComparison.OrdinalIgnoreCase))
+            if (AuthorizationType.Equals("CloudAccessKey", StringComparison.OrdinalIgnoreCase))
             {
                 ServicePrincipalKey = Environment.GetEnvironmentVariable("SERVICE_PRINCIPAL_KEY");
 
@@ -45,12 +42,11 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 }
                 AccessKey = AccessKey.CreateFromBase64EncodedAccessKey(base64EncodedAccessKey);
             }
-            else if (AuthorizationType.Equals("LfdsUsernamePassword", StringComparison.OrdinalIgnoreCase))
+            else if (AuthorizationType.Equals("APIServerUsernamePassword", StringComparison.OrdinalIgnoreCase))
             {
-                Username = Environment.GetEnvironmentVariable("LFDS_USERNAME");
-                Password = Environment.GetEnvironmentVariable("LFDS_PASSWORD");
-                BaseUrl = Environment.GetEnvironmentVariable("SELFHOSTED_REPOSITORY_API_BASE_URI");
-                Organization = Environment.GetEnvironmentVariable("LFDS_ORGANIZATION");
+                Username = Environment.GetEnvironmentVariable("APISERVER_USERNAME");
+                Password = Environment.GetEnvironmentVariable("APISERVER_PASSWORD");
+                BaseUrl = Environment.GetEnvironmentVariable("APISERVER_REPOSITORY_API_BASE_URL");
             }
         }
     }
