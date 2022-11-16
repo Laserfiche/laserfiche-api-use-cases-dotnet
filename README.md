@@ -89,7 +89,7 @@ APISERVER_REPOSITORY_API_BASE_URL="<API Server Base Url (ex: https://example.com
 - Open a terminal window
 - Enter the following commands:
 
-```bash
+```csharp
 dotnet build
 dotnet run
 ```
