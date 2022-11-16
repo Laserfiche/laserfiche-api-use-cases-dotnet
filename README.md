@@ -3,9 +3,9 @@
 Sample .NET core service app that connects to a Laserfiche Cloud or Self-Hosted Repository.
 [Sample Code](./Program.cs)
 
-### Cloud Prerequisites
+## Cloud Prerequisites
 
-#### Software Prerequisites
+### Software Prerequisites
 
 - .NET 6.0 core SDK
 - CA, EU, or US Cloud Web Client account
