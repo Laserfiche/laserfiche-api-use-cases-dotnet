@@ -13,7 +13,6 @@ Sample .NET core service app that connects to a Laserfiche Cloud or Self-Hosted 
 ### 1. Create a Service Principal
 
 - Log in to your account using Web Client as an administrator:
-
   - [CA Cloud](https://app.laserfiche.ca/laserfiche)
   - [EU Cloud](https://app.eu.laserfiche.com/laserfiche)
   - [US Cloud](https://app.laserfiche.com/laserfiche)
@@ -44,7 +43,7 @@ Sample .NET core service app that connects to a Laserfiche Cloud or Self-Hosted 
 - Using the app picker, go to the 'Repository Administration' page and copy the Repository ID
 - In the root directory of this project, create a .env file containing the following lines:
 ```
-AUTHORIZATION_TYPE="CLOUD_ACCESS_KEY" 
+AUTHORIZATION_TYPE="CloudAccessKey" 
 
 SERVICE_PRINCIPAL_KEY="<Service Principal Key created from step 1>"
 
@@ -69,7 +68,7 @@ REPOSITORY_ID="<Repository ID from the 'Repository Administration' page>"
 - In the root directory of this project, create a .env file containing the following lines:
 
 ```
-AUTHORIZATION_TYPE="API_SERVER_USERNAME_PASSWORD" 
+AUTHORIZATION_TYPE="APIServerUsernamePassword" 
 
 REPOSITORY_ID="<Repository Name>"
 
