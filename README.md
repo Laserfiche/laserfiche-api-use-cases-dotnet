@@ -1,23 +1,24 @@
 # lf-sample-repository-api-dotnet-srv
 
-Sample .NET core service app that connects to a Laserfiche Cloud Repository using a service principal account.
+Sample .NET core service app that connects to a Laserfiche Cloud or Self-Hosted Repository.
 [Sample Code](./Program.cs)
 
-### Prerequisites
+### Cloud Prerequisites
 
 #### Software Prerequisites
 
-- Visual Studio Code
 - .NET 6.0 core SDK
-- Git
-- Clone this repo on your local machine
+- CA, EU, or US Cloud Web Client account
 
-#### 1. Create a Service Principal
+
+### 1. Create a Service Principal
 
 - Log in to your account using Web Client as an administrator:
+
   - [CA Cloud](https://app.laserfiche.ca/laserfiche)
   - [EU Cloud](https://app.eu.laserfiche.com/laserfiche)
   - [US Cloud](https://app.laserfiche.com/laserfiche)
+
 - Using the app picker, go to the 'Account' page
 - Click on the 'Service Principals' tab
 - Click on the 'Add Service Principal' button to create an account to be used to run this sample service
@@ -25,7 +26,7 @@ Sample .NET core service app that connects to a Laserfiche Cloud Repository usin
 - View the created service principal and click on the 'Create Service Principal Key(s)' button
 - Save the Service Principal Key for later use
 
-#### 2. Create an OAuth Service App
+### 2. Create an OAuth Service App
 
 - Navigate to Laserfiche Developer Console:
   - [CA Cloud](https://app.laserfiche.ca/devconsole/)
@@ -37,22 +38,51 @@ Sample .NET core service app that connects to a Laserfiche Cloud Repository usin
 - Click on the 'Authentication' Tab and create a new Access Key
 - Click the 'Download key as base-64 string' button for later use
 
-#### 3. Create a .env file
+### 3. Clone this repo on your local machine
+
+### 4. Create a .env file
 
 - Using the app picker, go to the 'Repository Administration' page and copy the Repository ID
 - In the root directory of this project, create a .env file containing the following lines:
+```
+AUTHORIZATION_TYPE="CLOUD_ACCESS_KEY" 
 
-```bash
 SERVICE_PRINCIPAL_KEY="<Service Principal Key created from step 1>"
 
 ACCESS_KEY="<base-64 Access Key string created from step 2>"
 
 REPOSITORY_ID="<Repository ID from the 'Repository Administration' page>"
-
-AUTHORIZATION_TYPE="CloudAccessKey"
 ```
+- Note: The .env file is used in local development environment to set operating system environment variables. DO NOT
+  check-in the .env file in Git
 
-- Note: The .env file is used in local development environment to set operating system environment variables. DO NOT check-in the .env file in Git 
+## Self-Hosted Prerequisites
+
+### Software Prerequisites
+
+- .NET 6.0 core SDK
+- Set up Self-Hosted API Server 1.0+
+
+### 1. Clone this repo on your local machine
+
+### 2. Create a .env file
+
+- In the root directory of this project, create a .env file containing the following lines:
+
+```
+AUTHORIZATION_TYPE="API_SERVER_USERNAME_PASSWORD" 
+
+REPOSITORY_ID="<Repository Name>"
+
+APISERVER_USERNAME="<Username>"
+
+APISERVER_PASSWORD="<Password>"
+
+APISERVER_REPOSITORY_API_BASE_URL="<API Server Base Url (ex: https://example.com/LFRepositoryAPI)>"
+```
+- Note: The .env file is used in local development environment to set operating system environment variables. DO NOT
+  check-in the .env file in Git
+
 
 ## Build and Run this App
 
