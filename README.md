@@ -86,8 +86,8 @@ APISERVER_REPOSITORY_API_BASE_URL="<API Server Base Url (ex: https://example.com
 
 ## Build and Run this App
 
-- Open the sample project root folder in Visual Studio Code
-- On a terminal window, enter the following commands:
+- Open a terminal window
+- Enter the following commands:
 
 ```bash
 dotnet build
