@@ -10,7 +10,6 @@ Sample .NET core service app that connects to a Laserfiche Cloud or Self-Hosted 
 - .NET 6.0 core SDK
 - CA, EU, or US Cloud Web Client account
 
-
 ### 1. Create a Service Principal
 
 - Log in to your account using Web Client as an administrator:
@@ -82,7 +81,6 @@ APISERVER_REPOSITORY_API_BASE_URL="<API Server Base Url (ex: https://example.com
 ```
 - Note: The .env file is used in local development environment to set operating system environment variables. DO NOT
   check-in the .env file in Git
-
 
 ## Build and Run this App
 
