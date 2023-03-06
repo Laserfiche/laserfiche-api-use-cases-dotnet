@@ -22,6 +22,11 @@ Sample .NET core service app that connects to a Laserfiche Cloud or Self-Hosted 
 - Add access rights to the repository and click the 'Create' button
 - View the created service principal and click on the 'Create Service Principal Key(s)' button
 - Save the Service Principal Key for later use
+- Open the Developer Console:
+  - [CA Cloud](https://app.laserfiche.ca/devconsole/apps)
+  - [EU Cloud](https://app.eu.laserfiche.com/devconsole/apps)
+  - [US Cloud](https://app.laserfiche.com/devconsole/apps)
+- Click on your app and select required scope(s) needed to read the repository in the 'Authentication' tab ("repository.Read"). Scopes are case-sensitive and space-delimited.
 
 ### 2. Create an OAuth Service App
 
