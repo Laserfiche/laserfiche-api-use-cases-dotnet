@@ -34,6 +34,7 @@ Sample .NET core service app that connects to a Laserfiche Cloud or Self-Hosted 
 - Select the app service account to be the one created on step 1 and click the 'Save changes' button
 - Click on the 'Authentication' Tab and create a new Access Key
 - Click the 'Download key as base-64 string' button for later use
+- Select the required scope for reading the repository in the 'Authentication' tab ("repository.Read").
 
 ### 3. Clone this repo on your local machine
 
@@ -42,7 +43,7 @@ Sample .NET core service app that connects to a Laserfiche Cloud or Self-Hosted 
 - Using the app picker, go to the 'Repository Administration' page and copy the Repository ID
 - In the root directory of this project, create a .env file containing the following lines:
 ```
-AUTHORIZATION_TYPE="CloudAccessKey" 
+AUTHORIZATION_TYPE="CLOUD_ACCESS_KEY" 
 
 SERVICE_PRINCIPAL_KEY="<Service Principal Key created from step 1>"
 
@@ -67,7 +68,7 @@ REPOSITORY_ID="<Repository ID from the 'Repository Administration' page>"
 - In the root directory of this project, create a .env file containing the following lines:
 
 ```
-AUTHORIZATION_TYPE="APIServerUsernamePassword" 
+AUTHORIZATION_TYPE="API_SERVER_USERNAME_PASSWORD" 
 
 REPOSITORY_ID="<Repository Name>"
 
