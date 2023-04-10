@@ -37,7 +37,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             }
             else
             {
-                throw new InvalidOperationException($"Environment variable '{AUTHORIZATION_TYPE}' does not exist or has an invalid value. It must be present and its value can only be '{nameof(AuthorizationType.CloudAccessKey)}' or '{nameof(AuthorizationType.APIServerUsernamePassword)}'.");
+                throw new InvalidOperationException($"Environment variable '{AUTHORIZATION_TYPE}' does not exist or has an invalid value. It must be present and its value can only be '{nameof(AuthorizationType.CLOUD_ACCESS_KEY)}' or '{nameof(AuthorizationType.API_SERVER_USERNAME_PASSWORD)}'.");
             }
 
             RepositoryId = Environment.GetEnvironmentVariable(REPOSITORY_ID);
