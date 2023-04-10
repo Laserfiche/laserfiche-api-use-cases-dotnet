@@ -19,7 +19,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 
                 // Scope(s) requested by the app
                 string scope = "repository.Read";
-
+                
                 if (config.AuthorizationType == AuthorizationType.CLOUD_ACCESS_KEY)
                 {
                     client = RepositoryApiClient.CreateFromAccessKey(config.ServicePrincipalKey, config.AccessKey, scope);
