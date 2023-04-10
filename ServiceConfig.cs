@@ -42,7 +42,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 
             RepositoryId = Environment.GetEnvironmentVariable(REPOSITORY_ID);
 
-            if (AuthorizationType == AuthorizationType.CloudAccessKey)
+            if (AuthorizationType == AuthorizationType.CLOUD_ACCESS_KEY)
             {
                 ServicePrincipalKey = Environment.GetEnvironmentVariable(SERVICE_PRINCIPAL_KEY);
 
@@ -53,7 +53,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 }
                 AccessKey = AccessKey.CreateFromBase64EncodedAccessKey(base64EncodedAccessKey);
             }
-            else if (AuthorizationType == AuthorizationType.APIServerUsernamePassword)
+            else if (AuthorizationType == AuthorizationType.API_SERVER_USERNAME_PASSWORD)
             {
                 Username = Environment.GetEnvironmentVariable(APISERVER_USERNAME);
                 Password = Environment.GetEnvironmentVariable(APISERVER_PASSWORD);
