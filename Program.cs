@@ -19,18 +19,17 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 
                 // Scope(s) requested by the app
                 string scope = "repository.Read";
-
-                if (config.AuthorizationType == AuthorizationType.CloudAccessKey)
+                if (config.AuthorizationType == AuthorizationType.CLOUD_ACCESS_KEY)
                 {
                     client = RepositoryApiClient.CreateFromAccessKey(config.ServicePrincipalKey, config.AccessKey, scope);
                 }
-                else if (config.AuthorizationType == AuthorizationType.APIServerUsernamePassword)
+                else if (config.AuthorizationType == AuthorizationType.API_SERVER_USERNAME_PASSWORD)
                 {
                     client = RepositoryApiClient.CreateFromUsernamePassword(config.RepositoryId, config.Username, config.Password, config.BaseUrl);
                 }
                 else
                 {
-                    Console.WriteLine($"Invalid value for '{ServiceConfig.AUTHORIZATION_TYPE}'. It can only be '{nameof(AuthorizationType.CloudAccessKey)}' or '{nameof(AuthorizationType.APIServerUsernamePassword)}'.");
+                    Console.WriteLine($"Invalid value for '{ServiceConfig.AUTHORIZATION_TYPE}'. It can only be '{nameof(AuthorizationType.CLOUD_ACCESS_KEY)}' or '{nameof(AuthorizationType.API_SERVER_USERNAME_PASSWORD)}'.");
                     return;
                 }
 

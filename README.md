@@ -43,7 +43,7 @@ Sample .NET core service app that connects to a Laserfiche Cloud or Self-Hosted 
 - Using the app picker, go to the 'Repository Administration' page and copy the Repository ID
 - In the root directory of this project, create a .env file containing the following lines:
 ```
-AUTHORIZATION_TYPE="CloudAccessKey" 
+AUTHORIZATION_TYPE="CLOUD_ACCESS_KEY" 
 
 SERVICE_PRINCIPAL_KEY="<Service Principal Key created from step 1>"
 
@@ -68,7 +68,7 @@ REPOSITORY_ID="<Repository ID from the 'Repository Administration' page>"
 - In the root directory of this project, create a .env file containing the following lines:
 
 ```
-AUTHORIZATION_TYPE="APIServerUsernamePassword" 
+AUTHORIZATION_TYPE="API_SERVER_USERNAME_PASSWORD" 
 
 REPOSITORY_ID="<Repository Name>"
 
