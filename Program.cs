@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -7,6 +8,11 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 {
     static class Program
     {
+        private static int tempSampleProjectFolderId = 0;
+        private static int tempEntryFieldId = 0;
+        private static int tempEdocEntryId = 0;
+        private const int rootFolderEntryId = 1;
+        private const string sampleProjectEdocName = ".Net Sample Project ImportDocument";
         public static async Task Main()
         {
             try
@@ -18,10 +24,9 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 IRepositoryApiClient client;
 
                 // Scope(s) requested by the app
-                string scope = "repository.Read";
                 if (config.AuthorizationType == AuthorizationType.CLOUD_ACCESS_KEY)
                 {
-                    client = RepositoryApiClient.CreateFromAccessKey(config.ServicePrincipalKey, config.AccessKey, scope);
+                    client = RepositoryApiClient.CreateFromAccessKey(config.ServicePrincipalKey, config.AccessKey);
                 }
                 else if (config.AuthorizationType == AuthorizationType.API_SERVER_USERNAME_PASSWORD)
                 {
@@ -34,13 +39,40 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 }
 
                 // Get the name of the first repository
-                var repositoryName = await GetRepositoryName(client);
+                string repositoryName = await GetRepositoryName(client);
 
                 // Get root entry
-                var root = await GetRootFolder(client, config.RepositoryId);
+                Entry root = await GetRootFolder(client, config.RepositoryId, rootFolderEntryId);
 
                 // Get folder children
-                var children = await GetFolderChildren(client, config.RepositoryId, root.Id);
+                ICollection<Entry> children = await GetFolderChildren(client, config.RepositoryId, root.Id);
+
+                // Creates a sample project folder
+                Entry createFolder = await CreateFolder(client, config.RepositoryId);
+
+                // Imports a document inside the sample project folder
+                await ImportDocument(client,config.RepositoryId, tempSampleProjectFolderId, sampleProjectEdocName);
+
+                // Set Entry Fields
+                await SetEntryFields(client, config.RepositoryId);
+
+                // Print root folder name
+                Entry sampleProjectRootFolder = await GetRootFolder(client, config.RepositoryId, tempSampleProjectFolderId);
+
+                // Print root folder children
+                ICollection<Entry> sampleProjectRootFolderChildren = await GetFolderChildren(client, config.RepositoryId, sampleProjectRootFolder.Id);
+
+                // Print entry fields
+                ODataValueContextOfIListOfFieldValue entryFields = await GetEntryFields(client,config.RepositoryId);
+
+                // Print Edoc Information
+                HttpResponseHead entryContentType = await GetEntryContentType(client, config.RepositoryId);
+
+                // Search for the imported document inside the sample project folder
+                await searchForImportedDocument(client, config.RepositoryId, sampleProjectEdocName);
+
+                // Deletes sample project folder and its contents inside it
+                await DeleteSampleProjectFolder(client, config.RepositoryId);
             }
             catch (Exception e)
             {
@@ -59,9 +91,9 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             return firstRepository?.RepoName;
         }
 
-        public static async Task<Entry> GetRootFolder(IRepositoryApiClient client, string repoId)
+        public static async Task<Entry> GetRootFolder(IRepositoryApiClient client, string repoId, int folderEntryId)
         {
-            var entry = await client.EntriesClient.GetEntryAsync(repoId, 1);
+            var entry = await client.EntriesClient.GetEntryAsync(repoId, folderEntryId);
             Console.WriteLine($"Root Folder Path: '{entry.FullPath}'");
             return entry;
         }
@@ -75,6 +107,122 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 Console.WriteLine($"Child name: {child.Name}\nChild type: {child.EntryType}\n");
             }
             return children.Value;
+        }
+
+        public static async Task<Entry> CreateFolder(IRepositoryApiClient client, string repoId)
+        {
+            const string newEntryName = ".Net sample project folder";
+            PostEntryChildrenRequest request = new PostEntryChildrenRequest();
+            request.EntryType = PostEntryChildrenEntryType.Folder;
+            request.Name = newEntryName;
+            Console.WriteLine("\nCreating sample project folder...");
+            Entry result = await client.EntriesClient.CreateOrCopyEntryAsync(repoId, rootFolderEntryId, request, true);
+            tempSampleProjectFolderId = result.Id;
+            return result;
+        }
+
+        public static async Task ImportDocument(IRepositoryApiClient client, string repoId, int folderEntryId, string sampleProjectFileName)
+        {
+            int parentEntryId = folderEntryId;
+            string fileName = sampleProjectFileName;
+            var electronicDocument = GetFileParameter();
+            var request = new PostEntryWithEdocMetadataRequest();
+            Console.WriteLine("\nImporting a document into the sample project folder...");
+            var result = await client.EntriesClient.ImportDocumentAsync(repoId, parentEntryId, fileName, autoRename: true, electronicDocument: electronicDocument, request: request).ConfigureAwait(false);
+            tempEdocEntryId = result.Operations.EntryCreate.EntryId;
+        }
+
+        public static async Task SetEntryFields(IRepositoryApiClient client, string repoId)
+        {
+            WFieldInfo field = null;
+            const string fieldValue = "JS sample project set entry value";
+            ODataValueContextOfIListOfWFieldInfo fieldDefinitionsResponse = await client.FieldDefinitionsClient.GetFieldDefinitionsAsync(repoId);
+            WFieldInfo[] fieldDefinitions = fieldDefinitionsResponse.Value.ToArray();
+            for (int i = 0; i < fieldDefinitions.Length; i++) {
+            if (
+              fieldDefinitions[i].FieldType == WFieldType.String &&
+              (fieldDefinitions[i].Constraint == "" || fieldDefinitions[i].Constraint == null) &&
+              (fieldDefinitions[i].Length >= 1)
+            ) {
+              field = fieldDefinitions[i];
+              break;
+            }
+          }
+          if (field?.Name == null) {
+            throw new Exception("field is undefined");
+          }
+          var requestBody = new Dictionary<string, FieldToUpdate>()
+          {
+              [field.Name] = new FieldToUpdate()
+              {
+                  Values = new List<ValueToUpdate>()
+                  {
+                      new ValueToUpdate() { Value = fieldValue, Position = 1 }
+                  }
+              }
+          };
+          Entry entry = await CreateEntry(client, repoId, entryName: ".Net Sample Project SetFields", tempSampleProjectFolderId);
+          int num = entry.Id;
+          tempEntryFieldId = entry.Id;
+          Console.WriteLine("\nSetting Entry Fields in the sample project folder...\n");
+          await client.EntriesClient.AssignFieldValuesAsync(repoId, num, requestBody);
+        }
+
+        public static async Task<ODataValueContextOfIListOfFieldValue> GetEntryFields(IRepositoryApiClient client, string repoId)
+        {
+            ODataValueContextOfIListOfFieldValue entryFieldResponse = await client.EntriesClient.GetFieldValuesAsync(repoId, tempEntryFieldId);
+            FieldValue[] fieldDefinitions = entryFieldResponse.Value.ToArray();
+            Console.WriteLine($"Entry Field Name: {fieldDefinitions[0].FieldName}");
+            Console.WriteLine($"Entry Field Type: {fieldDefinitions[0].FieldType}");
+            Console.WriteLine($"Entry Field ID: {fieldDefinitions[0].FieldId}");
+            Console.WriteLine($"Entry Field Value: {fieldDefinitions[0].Values.First()["value"]}");
+            return entryFieldResponse;
+        }
+
+        public static async Task<HttpResponseHead> GetEntryContentType(IRepositoryApiClient client, string repoId)
+        {
+            HttpResponseHead documentContentTypeResponse = await client.EntriesClient.GetDocumentContentTypeAsync(repoId, tempEdocEntryId);
+            Console.WriteLine($"Electronic Document Content Type: {documentContentTypeResponse.Headers["Content-Type"].ElementAt(0)}");
+            Console.WriteLine($"Electronic Document Content Length: {documentContentTypeResponse.Headers["Content-Length"].ElementAt(0)}");
+            return documentContentTypeResponse;
+        }
+
+        public static async Task searchForImportedDocument(IRepositoryApiClient client, string repoId, string sampleProjectFileName)
+        {
+            SimpleSearchRequest searchRequest = new SimpleSearchRequest();
+            searchRequest.SearchCommand = "({LF:Basic ~= \"" + sampleProjectFileName + "\", option=\"DFANLT\"})";
+            Console.WriteLine("\nSearching for imported document...");
+            ODataValueContextOfIListOfEntry simpleSearchResponse = await client.SimpleSearchesClient.CreateSimpleSearchOperationAsync(repoId, request:searchRequest);
+            Console.WriteLine("\nSearch Results");
+            Entry[] searchResults = simpleSearchResponse.Value.ToArray();
+            for (int i = 0; i < searchResults.Length; i++) {
+              Entry child = searchResults[i];
+              Console.WriteLine($"{i}:[{child.EntryType} id:{child.Id}] '{child.Name}'"); 
+            }
+        }
+
+        public static async Task DeleteSampleProjectFolder(IRepositoryApiClient client, string repoId)
+        {
+            Console.WriteLine("\nDeleting all sample project entries...");
+            await client.EntriesClient.DeleteEntryInfoAsync(repoId, tempSampleProjectFolderId);
+            Console.WriteLine("\nDeleted all sample project entries\n");
+        }
+
+        private static async Task<Entry> CreateEntry(IRepositoryApiClient client, string repoId, string entryName, int parentEntryId, bool autoRename = true)
+        {
+            PostEntryChildrenRequest request = new PostEntryChildrenRequest();
+            request.EntryType = PostEntryChildrenEntryType.Folder;
+            request.Name = entryName;
+            var newEntry = await client.EntriesClient.CreateOrCopyEntryAsync(repoId, parentEntryId, request, autoRename);
+            return newEntry;
+        }
+
+        private static FileParameter GetFileParameter()
+        {
+            Stream fileStream = null;
+            string fileLocation = @"TestFiles/test.pdf";
+            fileStream = File.OpenRead(fileLocation);
+            return new FileParameter(fileStream, "test", "application/pdf");
         }
     }
 }
