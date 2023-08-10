@@ -10,7 +10,6 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
     {
         private static int tempSampleProjectFolderId = 0;
         private static int tempEntryFieldId = 0;
-        private static int tempEdocEntryId = 0;
         private const int rootFolderEntryId = 1;
         private const string sampleProjectEdocName = ".Net Sample Project ImportDocument";
         public static async Task Main()
@@ -51,7 +50,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 Entry createFolder = await CreateFolder(client, config.RepositoryId);
 
                 // Imports a document inside the sample project folder
-                await ImportDocument(client,config.RepositoryId, tempSampleProjectFolderId, sampleProjectEdocName);
+                int tempEdocEntryId = await ImportDocument(client,config.RepositoryId, tempSampleProjectFolderId, sampleProjectEdocName);
 
                 // Set Entry Fields
                 await SetEntryFields(client, config.RepositoryId);
@@ -66,7 +65,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 ODataValueContextOfIListOfFieldValue entryFields = await GetEntryFields(client,config.RepositoryId);
 
                 // Print Edoc Information
-                HttpResponseHead entryContentType = await GetEntryContentType(client, config.RepositoryId);
+                HttpResponseHead entryContentType = await GetEntryContentType(client, config.RepositoryId, tempEdocEntryId);
 
                 // Search for the imported document inside the sample project folder
                 await searchForImportedDocument(client, config.RepositoryId, sampleProjectEdocName);
@@ -121,7 +120,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             return result;
         }
 
-        public static async Task ImportDocument(IRepositoryApiClient client, string repoId, int folderEntryId, string sampleProjectFileName)
+        public static async Task<int> ImportDocument(IRepositoryApiClient client, string repoId, int folderEntryId, string sampleProjectFileName)
         {
             int parentEntryId = folderEntryId;
             string fileName = sampleProjectFileName;
@@ -129,13 +128,14 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             var request = new PostEntryWithEdocMetadataRequest();
             Console.WriteLine("\nImporting a document into the sample project folder...");
             var result = await client.EntriesClient.ImportDocumentAsync(repoId, parentEntryId, fileName, autoRename: true, electronicDocument: electronicDocument, request: request).ConfigureAwait(false);
-            tempEdocEntryId = result.Operations.EntryCreate.EntryId;
+            int edocEntryId = result.Operations.EntryCreate.EntryId;
+            return edocEntryId;
         }
 
         public static async Task SetEntryFields(IRepositoryApiClient client, string repoId)
         {
             WFieldInfo field = null;
-            const string fieldValue = "JS sample project set entry value";
+            const string fieldValue = ".Net sample project set entry value";
             ODataValueContextOfIListOfWFieldInfo fieldDefinitionsResponse = await client.FieldDefinitionsClient.GetFieldDefinitionsAsync(repoId);
             WFieldInfo[] fieldDefinitions = fieldDefinitionsResponse.Value.ToArray();
             for (int i = 0; i < fieldDefinitions.Length; i++) {
@@ -179,7 +179,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             return entryFieldResponse;
         }
 
-        public static async Task<HttpResponseHead> GetEntryContentType(IRepositoryApiClient client, string repoId)
+        public static async Task<HttpResponseHead> GetEntryContentType(IRepositoryApiClient client, string repoId, int tempEdocEntryId)
         {
             HttpResponseHead documentContentTypeResponse = await client.EntriesClient.GetDocumentContentTypeAsync(repoId, tempEdocEntryId);
             Console.WriteLine($"Electronic Document Content Type: {documentContentTypeResponse.Headers["Content-Type"].ElementAt(0)}");
