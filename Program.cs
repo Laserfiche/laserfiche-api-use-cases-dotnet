@@ -52,7 +52,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 int tempEdocEntryId = await ImportDocument(client,config.RepositoryId, createFolder.Id, sampleProjectEdocName);
 
                 // Set Entry Fields
-                Entry setEntryFields = await SetEntryFields(client, config.RepositoryId, createFolder.Id);
+                await SetEntryFields(client, config.RepositoryId, createFolder.Id);
 
                 // Print root folder name
                 Entry sampleProjectRootFolder = await GetFolder(client, config.RepositoryId, createFolder.Id);
@@ -61,7 +61,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 ICollection<Entry> sampleProjectRootFolderChildren = await GetFolderChildren(client, config.RepositoryId, sampleProjectRootFolder.Id);
 
                 // Print entry fields
-                ODataValueContextOfIListOfFieldValue entryFields = await GetEntryFields(client,config.RepositoryId, setEntryFields.Id);
+                ODataValueContextOfIListOfFieldValue entryFields = await GetEntryFields(client,config.RepositoryId, createFolder.Id);
 
                 // Print Edoc Information
                 HttpResponseHead entryContentType = await GetEntryContentType(client, config.RepositoryId, tempEdocEntryId);
@@ -130,7 +130,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             return edocEntryId;
         }
 
-        public static async Task<Entry> SetEntryFields(IRepositoryApiClient client, string repoId, int entryId)
+        public static async Task SetEntryFields(IRepositoryApiClient client, string repoId, int entryId)
         {
             WFieldInfo field = null;
             const string fieldValue = ".Net sample project set entry value";
@@ -159,11 +159,8 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                   }
               }
           };
-          Entry entry = await CreateEntry(client, repoId, entryName: ".Net Sample Project SetFields", entryId);
-          int num = entry.Id;
           Console.WriteLine("\nSetting Entry Fields in the sample project folder...\n");
-          await client.EntriesClient.AssignFieldValuesAsync(repoId, num, requestBody);
-          return entry;
+          await client.EntriesClient.AssignFieldValuesAsync(repoId, entryId, requestBody);
         }
 
         public static async Task<ODataValueContextOfIListOfFieldValue> GetEntryFields(IRepositoryApiClient client, string repoId, int setFieldsEntryId)
