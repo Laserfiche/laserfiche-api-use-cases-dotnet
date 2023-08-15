@@ -54,7 +54,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 int tempEdocEntryId = await ImportDocument(client,config.RepositoryId, tempSampleProjectFolderId, sampleProjectEdocName);
 
                 // Set Entry Fields
-                await SetEntryFields(client, config.RepositoryId);
+                await SetEntryFields(client, config.RepositoryId, createFolder.Id);
 
                 // Print root folder name
                 Entry sampleProjectRootFolder = await GetRootFolder(client, config.RepositoryId, tempSampleProjectFolderId);
@@ -133,7 +133,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             return edocEntryId;
         }
 
-        public static async Task SetEntryFields(IRepositoryApiClient client, string repoId)
+        public static async Task SetEntryFields(IRepositoryApiClient client, string repoId, int sampleProjectFolderEntryId)
         {
             WFieldInfo field = null;
             const string fieldValue = ".Net sample project set entry value";
@@ -162,7 +162,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                   }
               }
           };
-          Entry entry = await CreateEntry(client, repoId, entryName: ".Net Sample Project SetFields", tempSampleProjectFolderId);
+          Entry entry = await CreateEntry(client, repoId, entryName: ".Net Sample Project SetFields", sampleProjectFolderEntryId);
           int num = entry.Id;
           tempEntryFieldId = entry.Id;
           Console.WriteLine("\nSetting Entry Fields in the sample project folder...\n");
