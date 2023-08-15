@@ -8,8 +8,6 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 {
     static class Program
     {
-        private static int tempSampleProjectFolderId = 0;
-        private static int tempEntryFieldId = 0;
         private const int rootFolderEntryId = 1;
         private const string sampleProjectEdocName = ".Net Sample Project ImportDocument";
         public static async Task Main()
@@ -51,28 +49,28 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 Entry createFolder = await CreateFolder(client, config.RepositoryId);
 
                 // Imports a document inside the sample project folder
-                int tempEdocEntryId = await ImportDocument(client,config.RepositoryId, tempSampleProjectFolderId, sampleProjectEdocName);
+                int tempEdocEntryId = await ImportDocument(client,config.RepositoryId, createFolder.Id, sampleProjectEdocName);
 
                 // Set Entry Fields
-                await SetEntryFields(client, config.RepositoryId, createFolder.Id);
+                Entry setEntryFields = await SetEntryFields(client, config.RepositoryId, createFolder.Id);
 
                 // Print root folder name
-                Entry sampleProjectRootFolder = await GetRootFolder(client, config.RepositoryId, tempSampleProjectFolderId);
+                Entry sampleProjectRootFolder = await GetRootFolder(client, config.RepositoryId, createFolder.Id);
 
                 // Print root folder children
                 ICollection<Entry> sampleProjectRootFolderChildren = await GetFolderChildren(client, config.RepositoryId, sampleProjectRootFolder.Id);
 
                 // Print entry fields
-                ODataValueContextOfIListOfFieldValue entryFields = await GetEntryFields(client,config.RepositoryId);
+                ODataValueContextOfIListOfFieldValue entryFields = await GetEntryFields(client,config.RepositoryId, setEntryFields.Id);
 
                 // Print Edoc Information
                 HttpResponseHead entryContentType = await GetEntryContentType(client, config.RepositoryId, tempEdocEntryId);
 
                 // Search for the imported document inside the sample project folder
-                await searchForImportedDocument(client, config.RepositoryId, sampleProjectEdocName);
+                await SearchForImportedDocument(client, config.RepositoryId, sampleProjectEdocName);
 
                 // Deletes sample project folder and its contents inside it
-                await DeleteSampleProjectFolder(client, config.RepositoryId);
+                await DeleteSampleProjectFolder(client, config.RepositoryId, createFolder.Id);
             }
             catch (Exception e)
             {
@@ -117,7 +115,6 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             request.Name = newEntryName;
             Console.WriteLine("\nCreating sample project folder...");
             Entry result = await client.EntriesClient.CreateOrCopyEntryAsync(repoId, rootFolderEntryId, request, true);
-            tempSampleProjectFolderId = result.Id;
             return result;
         }
 
@@ -133,7 +130,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             return edocEntryId;
         }
 
-        public static async Task SetEntryFields(IRepositoryApiClient client, string repoId, int sampleProjectFolderEntryId)
+        public static async Task<Entry> SetEntryFields(IRepositoryApiClient client, string repoId, int sampleProjectFolderEntryId)
         {
             WFieldInfo field = null;
             const string fieldValue = ".Net sample project set entry value";
@@ -164,14 +161,14 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
           };
           Entry entry = await CreateEntry(client, repoId, entryName: ".Net Sample Project SetFields", sampleProjectFolderEntryId);
           int num = entry.Id;
-          tempEntryFieldId = entry.Id;
           Console.WriteLine("\nSetting Entry Fields in the sample project folder...\n");
           await client.EntriesClient.AssignFieldValuesAsync(repoId, num, requestBody);
+          return entry;
         }
 
-        public static async Task<ODataValueContextOfIListOfFieldValue> GetEntryFields(IRepositoryApiClient client, string repoId)
+        public static async Task<ODataValueContextOfIListOfFieldValue> GetEntryFields(IRepositoryApiClient client, string repoId, int setFieldsEntryId)
         {
-            ODataValueContextOfIListOfFieldValue entryFieldResponse = await client.EntriesClient.GetFieldValuesAsync(repoId, tempEntryFieldId);
+            ODataValueContextOfIListOfFieldValue entryFieldResponse = await client.EntriesClient.GetFieldValuesAsync(repoId, setFieldsEntryId);
             FieldValue[] fieldDefinitions = entryFieldResponse.Value.ToArray();
             Console.WriteLine($"Entry Field Name: {fieldDefinitions[0].FieldName}");
             Console.WriteLine($"Entry Field Type: {fieldDefinitions[0].FieldType}");
@@ -188,7 +185,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             return documentContentTypeResponse;
         }
 
-        public static async Task searchForImportedDocument(IRepositoryApiClient client, string repoId, string sampleProjectFileName)
+        public static async Task SearchForImportedDocument(IRepositoryApiClient client, string repoId, string sampleProjectFileName)
         {
             SimpleSearchRequest searchRequest = new SimpleSearchRequest();
             searchRequest.SearchCommand = "({LF:Basic ~= \"" + sampleProjectFileName + "\", option=\"DFANLT\"})";
@@ -202,10 +199,10 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             }
         }
 
-        public static async Task DeleteSampleProjectFolder(IRepositoryApiClient client, string repoId)
+        public static async Task DeleteSampleProjectFolder(IRepositoryApiClient client, string repoId, int sampleProjectFolderEntryId)
         {
             Console.WriteLine("\nDeleting all sample project entries...");
-            await client.EntriesClient.DeleteEntryInfoAsync(repoId, tempSampleProjectFolderId);
+            await client.EntriesClient.DeleteEntryInfoAsync(repoId, sampleProjectFolderEntryId);
             Console.WriteLine("\nDeleted all sample project entries\n");
         }
 
