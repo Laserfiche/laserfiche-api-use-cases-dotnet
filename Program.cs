@@ -40,7 +40,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 string repositoryName = await GetRepositoryName(client);
 
                 // Get root entry
-                Entry root = await GetRootFolder(client, config.RepositoryId, rootFolderEntryId);
+                Entry root = await GetFolder(client, config.RepositoryId, rootFolderEntryId);
 
                 // Get folder children
                 ICollection<Entry> children = await GetFolderChildren(client, config.RepositoryId, root.Id);
@@ -55,7 +55,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 Entry setEntryFields = await SetEntryFields(client, config.RepositoryId, createFolder.Id);
 
                 // Print root folder name
-                Entry sampleProjectRootFolder = await GetRootFolder(client, config.RepositoryId, createFolder.Id);
+                Entry sampleProjectRootFolder = await GetFolder(client, config.RepositoryId, createFolder.Id);
 
                 // Print root folder children
                 ICollection<Entry> sampleProjectRootFolderChildren = await GetFolderChildren(client, config.RepositoryId, sampleProjectRootFolder.Id);
@@ -89,7 +89,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             return firstRepository?.RepoName;
         }
 
-        public static async Task<Entry> GetRootFolder(IRepositoryApiClient client, string repoId, int folderEntryId)
+        public static async Task<Entry> GetFolder(IRepositoryApiClient client, string repoId, int folderEntryId)
         {
             var entry = await client.EntriesClient.GetEntryAsync(repoId, folderEntryId);
             Console.WriteLine($"Root Folder Path: '{entry.FullPath}'");
