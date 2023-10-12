@@ -65,7 +65,7 @@ See [this page](https://github.com/Laserfiche/lf-sample-repository-api-dotnet-sr
 
 ## Build and Run this App
 
-- Open a terminal window
+- Open a terminal window.
 - Enter the following commands:
 
 ```csharp
