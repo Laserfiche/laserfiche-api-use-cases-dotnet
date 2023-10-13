@@ -267,7 +267,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 RepositoryId = repositoryId,
                 Request = request
             }).ConfigureAwait(false);
-            Console.WriteLine("\nSearch Results:");
+            Console.WriteLine("Search Results:");
             var searchResults = collectionResponse.Value;
             for (int i = 0; i < searchResults.Count; i++) {
               Entry child = searchResults[i];
