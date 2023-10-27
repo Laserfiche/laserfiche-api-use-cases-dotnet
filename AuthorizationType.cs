@@ -1,4 +1,6 @@
-﻿namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
+// Copyright (c) Laserfiche.
+// Licensed under the MIT License. See LICENSE in the project root for license information.
+namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 {
     public enum AuthorizationType
     {
