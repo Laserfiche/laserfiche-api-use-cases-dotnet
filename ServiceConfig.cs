@@ -32,7 +32,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 Console.WriteLine("Failed to read credentials.");
             }
 
-            // Read credentials from envrionment
+            // Read credentials from environment
             if (Enum.TryParse(Environment.GetEnvironmentVariable(AUTHORIZATION_TYPE), ignoreCase: true, out AuthorizationType value))
             {
                 AuthorizationType = value;
