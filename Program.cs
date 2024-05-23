@@ -13,53 +13,34 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 {
     static class Program
     {
-        private const int rootFolderEntryId = 1;
-        private const string sampleProjectDocumentName = ".Net Sample Document";
+        private const int ROOT_ENTRY_ID = 1;
+        private static readonly HttpClient _httpClient = new HttpClient();
         public static async Task Main()
         {
-            var config = new ServiceConfig(".env");
-            IRepositoryApiClient client;
-
-            string requiredScopes = "repository.Read repository.Write";
-            if (config.AuthorizationType == AuthorizationType.CLOUD_ACCESS_KEY)
-            {
-                client = RepositoryApiClient.CreateFromAccessKey(config.ServicePrincipalKey, config.AccessKey, requiredScopes);
-            }
-            else if (config.AuthorizationType == AuthorizationType.API_SERVER_USERNAME_PASSWORD)
-            {
-                client = RepositoryApiClient.CreateFromUsernamePassword(config.RepositoryId, config.Username, config.Password, config.BaseUrl);
-            }
-            else
-            {
-                Console.WriteLine($"Invalid value for '{ServiceConfig.AUTHORIZATION_TYPE}'. It can only be '{nameof(AuthorizationType.CLOUD_ACCESS_KEY)}' or '{nameof(AuthorizationType.API_SERVER_USERNAME_PASSWORD)}'.");
-                return;
-            }
+            ServiceConfig config = new ServiceConfig(".env");
+            IRepositoryApiClient repositoryApiClient = CreateRepositoryApiClient(config);
             Entry sampleFolderEntry = null;
             try
             {
-                await PrintAllRepositoryNames(client);
+                await PrintAllRepositoryNames(repositoryApiClient);
 
-                Entry root = await GetFolder(client, config.RepositoryId, rootFolderEntryId);
+                Entry root = await GetFolder(repositoryApiClient, config.RepositoryId, ROOT_ENTRY_ID);
 
-                await PrintFolderChildrenInformation(client, config.RepositoryId, root.Id);
+                await PrintFolderChildrenInformation(repositoryApiClient, config.RepositoryId, root.Id);
 
-                sampleFolderEntry = await CreateSampleProjectFolder(client, config.RepositoryId);
+                sampleFolderEntry = await CreateSampleProjectFolder(repositoryApiClient, config.RepositoryId);
 
-                int importedEntryId = await ImportDocument(client,config.RepositoryId, sampleFolderEntry.Id, sampleProjectDocumentName);
+                Entry importedPdfEntry = await ImportDocument(repositoryApiClient, config.RepositoryId, sampleFolderEntry.Id);
 
-                await SetEntryFields(client, config.RepositoryId, sampleFolderEntry.Id);
+                await SetEntryFields(repositoryApiClient, config.RepositoryId, sampleFolderEntry.Id);
 
-                Entry sampleProjectRootFolder = await GetFolder(client, config.RepositoryId, sampleFolderEntry.Id);
+                await PrintEntryFields(repositoryApiClient, config.RepositoryId, sampleFolderEntry.Id);
 
-                await PrintFolderChildrenInformation(client, config.RepositoryId, sampleProjectRootFolder.Id);
+                await ExportEntryExampleAsync(repositoryApiClient, config.RepositoryId, importedPdfEntry.Id);
 
-                await PrintEntryFields(client,config.RepositoryId, sampleFolderEntry.Id);
+                await SearchForImportedDocument(repositoryApiClient, config.RepositoryId, importedPdfEntry.Name);
 
-                await PrintEntryContentType(client, config.RepositoryId, importedEntryId);
-
-                await SearchForImportedDocument(client, config.RepositoryId, sampleProjectDocumentName);
-
-                await ImportLargeDocument(client, config.RepositoryId, sampleFolderEntry.Id);
+                await ImportLargeDocument(repositoryApiClient, config.RepositoryId, sampleFolderEntry.Id);
             }
             catch (Exception e)
             {
@@ -69,8 +50,27 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             {
                 if (sampleFolderEntry != null)
                 {
-                    await DeleteSampleProjectFolder(client, config.RepositoryId, sampleFolderEntry.Id);
+                    await DeleteSampleProjectFolder(repositoryApiClient, config.RepositoryId, sampleFolderEntry.Id);
                 }
+            }
+        }
+
+        private static IRepositoryApiClient CreateRepositoryApiClient(ServiceConfig config)
+        {
+            string requiredScopes = "repository.Read repository.Write";
+            if (config.AuthorizationType == AuthorizationType.CLOUD_ACCESS_KEY)
+            {
+                IRepositoryApiClient client = RepositoryApiClient.CreateFromAccessKey(config.ServicePrincipalKey, config.AccessKey, requiredScopes);
+                return client;
+            }
+            else if (config.AuthorizationType == AuthorizationType.API_SERVER_USERNAME_PASSWORD)
+            {
+                IRepositoryApiClient client = RepositoryApiClient.CreateFromUsernamePassword(config.RepositoryId, config.Username, config.Password, config.BaseUrl);
+                return client;
+            }
+            else
+            {
+                throw new Exception($"Invalid value for '{ServiceConfig.AUTHORIZATION_TYPE}'. It can only be '{nameof(AuthorizationType.CLOUD_ACCESS_KEY)}' or '{nameof(AuthorizationType.API_SERVER_USERNAME_PASSWORD)}'.");
             }
         }
 
@@ -79,7 +79,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         */
         public static async Task PrintAllRepositoryNames(IRepositoryApiClient client)
         {
-            var collectionResponse = await client.RepositoriesClient.ListRepositoriesAsync().ConfigureAwait(false);
+            var collectionResponse = await client.RepositoriesClient.ListRepositoriesAsync();
             foreach (var repository in collectionResponse.Value)
             {
                 Console.WriteLine($"Repository Name: '{repository.Name}' Repository ID: {repository.Id}");
@@ -95,7 +95,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             {
                 RepositoryId = repositoryId,
                 EntryId = folderEntryId
-            }).ConfigureAwait(false);
+            });
             Console.WriteLine($"\nRoot Folder Path: '{entry.FullPath}'");
             return entry;
         }
@@ -105,19 +105,27 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
          */
         public static async Task PrintFolderChildrenInformation(IRepositoryApiClient client, string repositoryId, int entryId)
         {
-            var collectionResponse = await client.EntriesClient.ListEntriesAsync(new ListEntriesParameters()
-            {
-                RepositoryId = repositoryId,
-                EntryId = entryId,
-                Orderby = "name",
-                GroupByEntryType = true
-            }).ConfigureAwait(false);
-            var children = collectionResponse.Value;
-            Console.WriteLine($"\nNumber of entries returned: {children.Count}");
-            foreach (var child in children)
-            {
-                Console.WriteLine($"Child Name: '{child.Name}' Child ID: {child.Id} Child Type: {child.EntryType}");
-            }
+            int count = 0;
+            await client.EntriesClient.ListEntriesForEachAsync(
+               (entryCollectionResponse) =>
+               {
+                   foreach (var child in entryCollectionResponse.Value)
+                   {
+                       count++;
+                       Console.WriteLine($"Child Name: '{child.Name}' Child ID: {child.Id} Child Type: {child.EntryType}");
+                   }
+                   return Task.FromResult(true); //True means keep fetching the next page of entries
+               },
+
+               new ListEntriesParameters()
+               {
+                   RepositoryId = repositoryId,
+                   EntryId = entryId,
+                   Orderby = "name",
+                   GroupByEntryType = true
+               });
+
+            Console.WriteLine($"Folder: '{entryId}' contains {count} items.");
         }
 
         /**
@@ -125,7 +133,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
          */
         public static async Task<Entry> CreateSampleProjectFolder(IRepositoryApiClient client, string repositoryId)
         {
-            const string newEntryName = ".Net sample project folder";
+            const string newEntryName = ".Net sample project folder. CAN BE DELETED.";
             CreateEntryRequest request = new CreateEntryRequest();
             request.EntryType = CreateEntryRequestEntryType.Folder;
             request.Name = newEntryName;
@@ -134,9 +142,9 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             Entry newEntry = await client.EntriesClient.CreateEntryAsync(new CreateEntryParameters()
             {
                 RepositoryId = repositoryId,
-                EntryId = rootFolderEntryId,
+                EntryId = ROOT_ENTRY_ID,
                 Request = request
-            }).ConfigureAwait(false);
+            });
             Console.WriteLine($"Done! Entry Id: {newEntry.Id}");
 
             return newEntry;
@@ -145,27 +153,31 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         /**
          * Imports a document into the folder specified by the given entry Id.
          */
-        public static async Task<int> ImportDocument(IRepositoryApiClient client, string repositoryId, int folderEntryId, string sampleProjectFileName)
+        public static async Task<Entry> ImportDocument(IRepositoryApiClient client, string repositoryId, int parentEntryId)
         {
-            int parentEntryId = folderEntryId;
-            string fileName = sampleProjectFileName;
             string fileLocation = @"TestFiles/test.pdf";
-            Stream fileStream = File.OpenRead(fileLocation);
-            var electronicDocument = new FileParameter(fileStream, "test", "application/pdf");
-            var request = new ImportEntryRequest();
-            request.Name = fileName;
-            request.AutoRename = true;
+            using Stream fileStream = File.OpenRead(fileLocation);
             Console.WriteLine("\nImporting a document into the sample project folder...");
 
             var newEntry = await client.EntriesClient.ImportEntryAsync(new ImportEntryParameters()
             {
                 RepositoryId = repositoryId,
                 EntryId = parentEntryId,
-                File = electronicDocument,
-                Request = request
-            }).ConfigureAwait(false);
+                File = new FileParameter(fileStream, "file"),
+                Request = new ImportEntryRequest
+                {
+                    Name = "newTestPdfFileName.pdf",
+                    AutoRename = true,
+                    ImportAsElectronicDocument = true,
+                    PdfOptions = new ImportEntryRequestPdfOptions
+                    {
+                        GeneratePages = false,
+                        GenerateText = false
+                    }
+                }
+            });
             Console.WriteLine($"Done! Entry Id: {newEntry.Id}");
-            return newEntry.Id;
+            return newEntry;
         }
 
         /**
@@ -173,44 +185,39 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
          */
         public static async Task SetEntryFields(IRepositoryApiClient client, string repositoryId, int entryId)
         {
-            FieldDefinition field = null;
-            const string fieldValue = ".Net sample project set entry value";
-            var collectionResponse = await client.FieldDefinitionsClient.ListFieldDefinitionsAsync(new ListFieldDefinitionsParameters()
+            const string fieldValue = $"DotNet SetFieldsAsync test";
+            var fieldsDefinitionsCollectionResponse = await client.FieldDefinitionsClient.ListFieldDefinitionsAsync(new ListFieldDefinitionsParameters()
             {
                 RepositoryId = repositoryId
-            }).ConfigureAwait(false);
+            });
 
-            var fieldDefinitions = collectionResponse.Value;
-            for (int i = 0; i < fieldDefinitions.Count; i++) {
-                if (fieldDefinitions[i].FieldType == FieldType.String &&
-                  (fieldDefinitions[i].Constraint == "" || fieldDefinitions[i].Constraint == null) &&
-                  (fieldDefinitions[i].Length >= 1)) {
-                    field = fieldDefinitions[i];
-                    break;
-                }
-            }
-            if (field?.Name == null) {
-                Console.WriteLine("No field is available.");
-            }
-            var request = new SetFieldsRequest()
+            FieldDefinition stringField = fieldsDefinitionsCollectionResponse.Value.FirstOrDefault(field =>
+                field.FieldType == FieldType.String && string.IsNullOrEmpty(field.Constraint) && field.Length >= 1);
+
+            if (stringField?.Name == null)
             {
-                Fields = new List<FieldToUpdate>
-                {
-                    new FieldToUpdate()
-                    {
-                        Name = field.Name,
-                        Values = new List<string> { fieldValue }
-                    }
-                }
-            };
-            Console.WriteLine("\nSetting Entry Fields in the sample project folder...");
+                throw new Exception("No suitable field definition found.");
+            }
+
+            Console.WriteLine($"\nSetting Field '{stringField.Name}' on Entry {entryId}.");
             var fieldCollectionResponse = await client.EntriesClient.SetFieldsAsync(new SetFieldsParameters()
             {
                 RepositoryId = repositoryId,
                 EntryId = entryId,
-                Request = request
-            }).ConfigureAwait(false);
-            Console.WriteLine($"Number of fields set on the entry: {fieldCollectionResponse.Value.Count}");
+                Request = new SetFieldsRequest()
+                {
+                    Fields = new List<FieldToUpdate>
+                    {
+                        new FieldToUpdate
+                        {
+                            Name = stringField.Name,
+                            Values = new List<string> { fieldValue }
+                        }
+                    }
+                }
+            });
+
+            Console.WriteLine($"Successfully set {fieldCollectionResponse.Value.Count} fields.");
         }
 
         /**
@@ -222,37 +229,37 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             {
                 RepositoryId = repositoryId,
                 EntryId = entryId
-            }).ConfigureAwait(false);
+            });
+            Console.WriteLine($"\nFields on Entry {entryId}:");
             foreach (var field in collectionResponse.Value)
             {
-                Console.WriteLine($"Field Id: {field.Id} Field Name: {field.Name} Field Type: {field.FieldType} Field Value: {string.Join(", ", field.Values)}");
+                Console.WriteLine($"  >Field Id: {field.Id}, Field Name: '{field.Name}', Field Type: '{field.FieldType}', Field Value: '{string.Join(", ", field.Values)}'");
             }
         }
 
         /**
-         * Prints the content-type of the electronic document associated with the given entry Id.
+         * Exports the electronic document part of an entry and prints its content-type.
          */
-        public static async Task PrintEntryContentType(IRepositoryApiClient client, string repositoryId, int entryId)
+        public static async Task ExportEntryExampleAsync(IRepositoryApiClient client, string repositoryId, int entryId)
         {
-            ExportEntryRequest request = new ExportEntryRequest();
-            request.Part = ExportEntryRequestPart.Edoc;
-            int exportAuditReasonId = await GetAuditReasonIdForExport(client, repositoryId);
-            if (exportAuditReasonId != -1)
-            {
-                request.AuditReasonId = exportAuditReasonId;
-            }
+            AuditReason exportDocumentAuditReason = await GetExportDocumentAuditReason(client, repositoryId);
+
             var response = await client.EntriesClient.ExportEntryAsync(new ExportEntryParameters()
             {
                 RepositoryId = repositoryId,
                 EntryId = entryId,
-                Request = request
-            }).ConfigureAwait(false);
-            var uri = response.Value;
-            var httpClient = new HttpClient();
-            using HttpResponseMessage httpResponse = await httpClient.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+                Request = new ExportEntryRequest
+                {
+                    Part = ExportEntryRequestPart.Edoc,
+                    AuditReasonId = exportDocumentAuditReason?.Id ?? 0
+                }
+            });
+
+            string documentDownloadUri = response.Value;
+            using HttpResponseMessage httpResponse = await _httpClient.GetAsync(documentDownloadUri, HttpCompletionOption.ResponseHeadersRead);
             if (httpResponse.IsSuccessStatusCode)
             {
-                Console.WriteLine($"\nElectronic Document Content Type: {httpResponse.Content.Headers.ContentType}");
+                Console.WriteLine($"\nExported Electronic Document '{httpResponse.Content.Headers.ContentDisposition?.FileName}', Content Type: {httpResponse.Content.Headers.ContentType}.");
             }
         }
 
@@ -261,19 +268,22 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
          */
         public static async Task SearchForImportedDocument(IRepositoryApiClient client, string repositoryId, string sampleProjectFileName)
         {
-            var request = new SearchEntryRequest();
-            request.SearchCommand = "({LF:Basic ~= \"" + sampleProjectFileName + "\", option=\"DFANLT\"})";
             Console.WriteLine("\nSearching for imported document...");
             var collectionResponse = await client.SimpleSearchesClient.SearchEntryAsync(new SearchEntryParameters()
             {
                 RepositoryId = repositoryId,
-                Request = request
-            }).ConfigureAwait(false);
+                Request = new SearchEntryRequest
+                {
+                    SearchCommand = "({LF:Basic ~= \"" + sampleProjectFileName + "\", option=\"DFANLT\"})"
+                }
+            });
+
             Console.WriteLine("Search Results:");
             var searchResults = collectionResponse.Value;
-            for (int i = 0; i < searchResults.Count; i++) {
-              Entry child = searchResults[i];
-              Console.WriteLine($"{i+1} Entry ID: {child.Id} Entry Name: '{child.Name}' Entry Type: {child.EntryType}"); 
+            for (int i = 0; i < searchResults.Count; i++)
+            {
+                Entry child = searchResults[i];
+                Console.WriteLine($"{i + 1} Entry ID: {child.Id}, Entry Name: '{child.Name}', Entry Type: '{child.EntryType}'");
             }
         }
 
@@ -282,34 +292,41 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
          */
         public static async Task DeleteSampleProjectFolder(IRepositoryApiClient client, string repositoryId, int sampleProjectFolderEntryId)
         {
-            Console.WriteLine("\nDeleting all sample project entries...");
+            Console.WriteLine($"\nDeleting sample project folder: '{sampleProjectFolderEntryId}'");
             var taskResponse = await client.EntriesClient.StartDeleteEntryAsync(new StartDeleteEntryParameters()
             {
                 RepositoryId = repositoryId,
                 EntryId = sampleProjectFolderEntryId,
-            }).ConfigureAwait(false);
-            var taskId = taskResponse.TaskId;
-            Console.WriteLine($"Task ID: {taskId}");
-            var collectionResponse = await client.TasksClient.ListTasksAsync(new ListTasksParameters()
-            {
-                RepositoryId = repositoryId,
-                TaskIds = new List<string> { taskId }
             });
-            var taskProgress = collectionResponse.Value[0];
-            Console.WriteLine($"Task Status: {taskProgress.Status}");
+
+            var taskId = taskResponse.TaskId;
+            Console.WriteLine($"StartDeleteEntryAsync returned Task ID: {taskId}");
+            TaskProgress taskProgress = null;
+            while (taskProgress == null || taskProgress.Status == TaskStatus.NotStarted || taskProgress.Status == TaskStatus.InProgress)
+            {
+                var collectionResponse = await client.TasksClient.ListTasksAsync(new ListTasksParameters()
+                {
+                    RepositoryId = repositoryId,
+                    TaskIds = new List<string> { taskId }
+                });
+                taskProgress = collectionResponse.Value.First(r => r.Id == taskId);
+            }
+
+            var errTxtx = taskProgress.Errors != null && taskProgress.Errors.Count > 0 ? (" Errors: " + Newtonsoft.Json.JsonConvert.SerializeObject(taskProgress.Errors)) : "";
+            Console.WriteLine($"{taskProgress.TaskType} Status: {taskProgress.Status}.{errTxtx}");
         }
 
         /**
          * Searches for the audit reason for export operation, and if found, returns its Id. Otherwise, returns -1.
          */
-        private static async Task<int> GetAuditReasonIdForExport(IRepositoryApiClient client, string repositoryId)
+        private static async Task<AuditReason> GetExportDocumentAuditReason(IRepositoryApiClient client, string repositoryId)
         {
             var collectionResponse = await client.AuditReasonsClient.ListAuditReasonsAsync(new ListAuditReasonsParameters()
-            { 
+            {
                 RepositoryId = repositoryId
-            }).ConfigureAwait(false);
-            var exportAuditReason = collectionResponse.Value.FirstOrDefault(auditReason => auditReason.AuditEventType == AuditEventType.ExportDocument);
-            return exportAuditReason != null ? exportAuditReason.Id : -1;
+            });
+            AuditReason exportDocumentAuditReason = collectionResponse.Value.FirstOrDefault(auditReason => auditReason.AuditEventType == AuditEventType.ExportDocument);
+            return exportDocumentAuditReason;
         }
 
         /**
@@ -333,7 +350,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             {
                 RepositoryId = repositoryId,
                 Request = requestBody
-            }).ConfigureAwait(false);
+            });
 
             var uploadId = response.UploadId;
 
@@ -357,7 +374,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 RepositoryId = repositoryId,
                 EntryId = folderEntryId,
                 Request = requestBody2
-            }).ConfigureAwait(false);
+            });
 
             var taskId = response2.TaskId;
             Console.WriteLine($"Task Id: {taskId}");
@@ -367,7 +384,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             {
                 RepositoryId = repositoryId,
                 TaskIds = new List<string> { taskId }
-            }).ConfigureAwait(false);
+            });
             var taskProgress = collectionResponse.Value[0];
             Console.WriteLine($"Task Status: {taskProgress.Status}");
             switch (taskProgress.Status)
@@ -418,9 +435,8 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         {
             string eTag = null;
             Console.WriteLine($"Writing part #{partNumber} ...");
-            HttpClient httpClient = new HttpClient();
             var content = new ByteArrayContent(part);
-            var httpResponse = await httpClient.PutAsync(url, content);
+            var httpResponse = await _httpClient.PutAsync(url, content);
             if (httpResponse.StatusCode == HttpStatusCode.OK)
             {
                 var headerFound = httpResponse.Headers.TryGetValues("ETag", out IEnumerable<string> values);
