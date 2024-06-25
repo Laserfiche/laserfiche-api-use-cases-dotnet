@@ -7,7 +7,7 @@ Sample .NET core service app that connects to a Laserfiche Cloud or Self-Hosted 
 
 ### Software Prerequisites
 
-- .NET 6.0 core SDK
+- .NET 8.0 core SDK
 - CA, EU, or US Cloud Web Client account
 
 ### 1. Create a Service Principal
