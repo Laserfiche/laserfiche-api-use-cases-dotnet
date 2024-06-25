@@ -283,7 +283,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             for (int i = 0; i < searchResults.Count; i++)
             {
                 Entry child = searchResults[i];
-                Console.WriteLine($"{i + 1} Entry ID: {child.Id}, Entry Name: '{child.Name}', Entry Type: '{child.EntryType}'");
+                Console.WriteLine($"  [{i + 1}] Entry ID: {child.Id}, Entry Name: '{child.Name}', Entry Type: '{child.EntryType}'");
             }
         }
 
@@ -334,77 +334,62 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
          */
         public static async Task ImportLargeDocument(IRepositoryApiClient client, string repositoryId, int folderEntryId)
         {
-            var file = new FileInfo(@"TestFiles/sample.pdf");
-            var mimeType = "application/pdf";
-
-            // Step 1: Get upload URLs
-            int parts = 2;
+            var fileToUpload = new FileInfo(@"TestFiles/sample.pdf");
+            string mimeType = "application/pdf";
+            string entryNameInRepository = "ImportLargeDocument sample.pdf";
+            int uploadUrlsRequestedCount = 10;
             int partSizeInMB = 5;
-            CreateMultipartUploadUrlsRequest requestBody = new CreateMultipartUploadUrlsRequest();
-            requestBody.FileName = file.Name;
-            requestBody.MimeType = mimeType;
-            requestBody.NumberOfParts = parts;
 
-            Console.WriteLine("\nRequesting upload URLs...");
-            var response = await client.EntriesClient.CreateMultipartUploadUrlsAsync(new CreateMultipartUploadUrlsParameters()
+
+            // Step 1: Get URLs to upload file parts
+            Console.WriteLine($"\nRequesting {uploadUrlsRequestedCount} upload URLs...");
+            var createMultipartUploadUrlsResponse = await client.EntriesClient.CreateMultipartUploadUrlsAsync(new CreateMultipartUploadUrlsParameters()
             {
                 RepositoryId = repositoryId,
-                Request = requestBody
+                Request = new CreateMultipartUploadUrlsRequest()
+                {
+                    FileName = fileToUpload.Name,
+                    MimeType = mimeType,
+                    NumberOfParts = uploadUrlsRequestedCount
+                }
             });
-
-            var uploadId = response.UploadId;
 
             // Step 2: Write file part into upload URLs
             Console.WriteLine("Writing file parts to upload URLs...");
-            var eTags = await WriteFile(file.FullName, response.Urls, partSizeInMB);
+            var eTags = await UploadAllFilePartsAsync(fileToUpload.FullName, createMultipartUploadUrlsResponse.Urls, partSizeInMB);
 
             // Step 3: Call ImportUploadedParts API
             Console.WriteLine("Starting the import task...");
-            StartImportUploadedPartsRequest requestBody2 = new StartImportUploadedPartsRequest();
-            requestBody2.UploadId = uploadId;
-            requestBody2.AutoRename = true;
-            requestBody2.PartETags = eTags;
-            requestBody2.Name = file.Name;
-            ImportEntryRequestPdfOptions pdfOptions = new ImportEntryRequestPdfOptions();
-            pdfOptions.GeneratePages = true;
-            pdfOptions.KeepPdfAfterImport = true;
-            requestBody2.PdfOptions = pdfOptions;
+
             StartTaskResponse response2 = await client.EntriesClient.StartImportUploadedPartsAsync(new StartImportUploadedPartsParameters()
             {
                 RepositoryId = repositoryId,
                 EntryId = folderEntryId,
-                Request = requestBody2
+                Request = new StartImportUploadedPartsRequest()
+                {
+                    UploadId = createMultipartUploadUrlsResponse.UploadId,
+                    AutoRename = true,
+                    PartETags = eTags,
+                    Name = entryNameInRepository,
+                    PdfOptions = new ImportEntryRequestPdfOptions()
+                    {
+                        GeneratePages = true,
+                        KeepPdfAfterImport = true
+                    }
+                }
             });
 
             var taskId = response2.TaskId;
-            Console.WriteLine($"Task Id: {taskId}");
+            Console.WriteLine($"Started Import Task: {taskId}");
 
-            // Check/print the status of the import task.
-            var collectionResponse = await client.TasksClient.ListTasksAsync(new ListTasksParameters()
-            {
-                RepositoryId = repositoryId,
-                TaskIds = new List<string> { taskId }
-            });
-            var taskProgress = collectionResponse.Value[0];
-            Console.WriteLine($"Task Status: {taskProgress.Status}");
-            switch (taskProgress.Status)
-            {
-                case TaskStatus.Completed:
-                    Console.WriteLine($"Entry Id: {taskProgress.Result.EntryId}");
-                    break;
-                case TaskStatus.Failed:
-                    foreach (var problemDetails in taskProgress.Errors)
-                    {
-                        PrintProblemDetails(problemDetails);
-                    }
-                    break;
-            }
+            // Step 4: Check/print the status of the import task.
+            await MonitorImportTaskProgressAsync(client, repositoryId, taskId);
         }
 
         /**
          * Splits the given file into parts of the given size, and writes them into the given URLs. Finally, returns the eTags of the written parts.
          */
-        private static async Task<string[]> WriteFile(string filePath, IList<string> urls, int partSizeInMB)
+        private static async Task<IList<string>> UploadAllFilePartsAsync(string filePath, IList<string> urls, int partSizeInMB)
         {
             List<string> eTags = new List<string>();
             using (FileStream fs = File.OpenRead(filePath))
@@ -418,23 +403,22 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                     int effectiveLength = fs.Read(buffer, 0, BUFFER_SIZE);
                     var part = new byte[effectiveLength];
                     Array.Copy(buffer, part, effectiveLength);
-                    var eTag = await WriteAsync(partNumber, urls[partNumber - 1], part);
+                    var eTag = await UploadFilePartAsync(partNumber, urls[partNumber - 1], part);
                     eTags.Add(eTag);
                     if (effectiveLength != BUFFER_SIZE)
                         break;
                     partNumber++;
                 }
             }
-            return eTags.ToArray();
+            return eTags;
         }
 
         /**
          * Writes the given file part into the given URL, and returns the eTags of the written part.
          */
-        private static async Task<string> WriteAsync(int partNumber, string url, byte[] part)
+        private static async Task<string> UploadFilePartAsync(int partNumber, string url, byte[] part)
         {
-            string eTag = null;
-            Console.WriteLine($"Writing part #{partNumber} ...");
+            Console.WriteLine($"Uploading file part #{partNumber}, size bytes: {part.Length}, to URL: {url.Substring(0, Math.Min(url.Length, 30))}...");
             var content = new ByteArrayContent(part);
             var httpResponse = await _httpClient.PutAsync(url, content);
             if (httpResponse.StatusCode == HttpStatusCode.OK)
@@ -442,18 +426,45 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 var headerFound = httpResponse.Headers.TryGetValues("ETag", out IEnumerable<string> values);
                 if (headerFound)
                 {
-                    eTag = values.First();
+                    string eTag = values.First();
+                    return eTag;
                 }
             }
-            return eTag;
+            throw new Exception($"ERROR uploading file part #{partNumber}. HTTP {httpResponse.StatusCode}");
         }
 
-        /**
-         * Prints the information of the given ProblemDetails object.
-         */
-        private static void PrintProblemDetails(ProblemDetails problemDetails)
+        private static async Task MonitorImportTaskProgressAsync(IRepositoryApiClient client, string repositoryId, string taskId)
         {
-            Console.WriteLine($"ProblemDetails: (Title: {problemDetails.Title}, Status: {problemDetails.Status}, Detail: {problemDetails.Detail}, Type: {problemDetails.Type}, Instance: {problemDetails.Instance}, ErrorCode: {problemDetails.ErrorCode}, ErrorSource: {problemDetails.ErrorSource})");
+            while (true)
+            {
+                var collectionResponse = await client.TasksClient.ListTasksAsync(new ListTasksParameters()
+                {
+                    RepositoryId = repositoryId,
+                    TaskIds = new List<string> { taskId }
+                });
+
+                var taskProgress = collectionResponse.Value.First(r => r.Id == taskId);
+                switch (taskProgress.Status)
+                {
+                    case TaskStatus.Completed:
+                        Console.WriteLine($"Task {taskId} Status: {taskProgress.Status}. {System.Text.Json.JsonSerializer.Serialize(taskProgress.Result)}");
+                        break;
+                    case TaskStatus.Failed:
+                        Console.WriteLine($"Task {taskId} Status: {taskProgress.Status}. Errors:");
+                        foreach (var problemDetails in taskProgress.Errors)
+                        {
+                            Console.WriteLine($"  - {System.Text.Json.JsonSerializer.Serialize(problemDetails)}");
+                        }
+                        break;
+                    default:
+                        Console.WriteLine($"Task {taskId} Status: {taskProgress.Status}");
+                        break;
+                }
+
+                bool done = taskProgress.Status == TaskStatus.Completed || taskProgress.Status == TaskStatus.Failed || taskProgress.Status == TaskStatus.Cancelled;
+                if (done)
+                    break;
+            }
         }
     }
 }
