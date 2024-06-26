@@ -1,0 +1,21 @@
+{
+  "powerHeader.commentMode": "line",
+  "powerHeader.autoInsert.enable": true,
+  "powerHeader.autoInsert.allow": "all",
+  "powerHeader.template": "Copyright <author>.\\nLicensed under the <licenseType> License.",
+  "powerHeader.variables": ["<author>='Laserfiche'", "<licenseType>='MIT'"],
+  "[html]": {
+    "powerHeader.commentMode": "block"
+  },
+  "[css]": {
+    "powerHeader.commentMode": "block"
+  },
+  "[markdown]": {
+    "powerHeader.commentMode": "block"
+  },
+  "powerHeader.autoInsert.languages": [
+      "plaintext",
+      "Log",
+      "json"
+  ]
+}

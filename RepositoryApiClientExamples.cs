@@ -23,25 +23,25 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             Entry sampleFolderEntry = null;
             try
             {
-                await PrintAllRepositoryNames(repositoryApiClient);
+                await PrintAllRepositoryNamesAsync(repositoryApiClient);
 
-                Entry root = await GetFolder(repositoryApiClient, config.RepositoryId, ROOT_ENTRY_ID);
+                Entry root = await GetFolderAsync(repositoryApiClient, config.RepositoryId, ROOT_ENTRY_ID);
 
-                await PrintFolderChildrenInformation(repositoryApiClient, config.RepositoryId, root.Id);
+                await PrintFolderChildrenInformationAsync(repositoryApiClient, config.RepositoryId, root.Id);
 
-                sampleFolderEntry = await CreateSampleProjectFolder(repositoryApiClient, config.RepositoryId);
+                sampleFolderEntry = await CreateSampleProjectFolderAsync(repositoryApiClient, config.RepositoryId);
 
-                Entry importedPdfEntry = await ImportDocument(repositoryApiClient, config.RepositoryId, sampleFolderEntry.Id);
+                Entry importedPdfEntry = await ImportDocumentAsync(repositoryApiClient, config.RepositoryId, sampleFolderEntry.Id);
 
-                await SetEntryFields(repositoryApiClient, config.RepositoryId, sampleFolderEntry.Id);
+                await SetEntryFieldsAsync(repositoryApiClient, config.RepositoryId, sampleFolderEntry.Id);
 
-                await PrintEntryFields(repositoryApiClient, config.RepositoryId, sampleFolderEntry.Id);
+                await PrintEntryFieldsAsync(repositoryApiClient, config.RepositoryId, sampleFolderEntry.Id);
 
-                await ExportEntryExampleAsync(repositoryApiClient, config.RepositoryId, importedPdfEntry.Id);
+                await ExportEntryAsync(repositoryApiClient, config.RepositoryId, importedPdfEntry.Id);
 
-                await SearchForImportedDocument(repositoryApiClient, config.RepositoryId, importedPdfEntry.Name);
+                await SearchForImportedDocumentAsync(repositoryApiClient, config.RepositoryId, importedPdfEntry.Name);
 
-                await ImportLargeDocument(repositoryApiClient, config.RepositoryId, sampleFolderEntry.Id);
+                await ImportLargeDocumentInChunksAsync(repositoryApiClient, config.RepositoryId, sampleFolderEntry.Id);
             }
             catch (Exception e)
             {
@@ -66,8 +66,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             }
             else if (config.AuthorizationType == AuthorizationType.API_SERVER_USERNAME_PASSWORD)
             {
-                IRepositoryApiClient client = RepositoryApiClient.CreateFromUsernamePassword(config.RepositoryId, config.Username, config.Password, config.BaseUrl);
-                return client;
+                throw new NotSupportedException("'Laserfiche.Repository.Api.Client.V2' is not supported with self-hosted API Server. Please use 'Laserfiche.Repository.Api.Client' NuGet package");
             }
             else
             {
@@ -78,7 +77,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         /**
         * Prints the information of all the available repositories.
         */
-        public static async Task PrintAllRepositoryNames(IRepositoryApiClient client)
+        public static async Task PrintAllRepositoryNamesAsync(IRepositoryApiClient client)
         {
             Console.WriteLine($"\nRepositories accessible by current user:");
             var collectionResponse = await client.RepositoriesClient.ListRepositoriesAsync();
@@ -91,7 +90,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         /**
          * Returns the entry for the given folder's entry Id.
          */
-        public static async Task<Entry> GetFolder(IRepositoryApiClient client, string repositoryId, int folderEntryId)
+        public static async Task<Entry> GetFolderAsync(IRepositoryApiClient client, string repositoryId, int folderEntryId)
         {
             var entry = await client.EntriesClient.GetEntryAsync(new GetEntryParameters()
             {
@@ -105,7 +104,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         /**
          * Prints the information of the child entries of the given folder's entry Id.
          */
-        public static async Task PrintFolderChildrenInformation(IRepositoryApiClient client, string repositoryId, int entryId)
+        public static async Task PrintFolderChildrenInformationAsync(IRepositoryApiClient client, string repositoryId, int entryId)
         {
             int count = 0;
             await client.EntriesClient.ListEntriesForEachAsync(
@@ -133,7 +132,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         /**
          * Creates a sample folder in the root folder.
          */
-        public static async Task<Entry> CreateSampleProjectFolder(IRepositoryApiClient client, string repositoryId)
+        public static async Task<Entry> CreateSampleProjectFolderAsync(IRepositoryApiClient client, string repositoryId)
         {
             const string newEntryName = ".Net sample project folder. CAN BE DELETED.";
             Console.WriteLine("\nCreating sample project folder...");
@@ -156,7 +155,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         /**
          * Imports a document into the folder specified by the given entry Id.
          */
-        public static async Task<Entry> ImportDocument(IRepositoryApiClient client, string repositoryId, int parentEntryId)
+        public static async Task<Entry> ImportDocumentAsync(IRepositoryApiClient client, string repositoryId, int parentEntryId)
         {
             string fileLocation = @"TestFiles/test.pdf";
             using Stream fileStream = File.OpenRead(fileLocation);
@@ -186,7 +185,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         /**
          * Sets a string field on the entry specified by the given entry Id.
          */
-        public static async Task SetEntryFields(IRepositoryApiClient client, string repositoryId, int entryId)
+        public static async Task SetEntryFieldsAsync(IRepositoryApiClient client, string repositoryId, int entryId)
         {
             const string fieldValue = $"DotNet SetFieldsAsync test";
             var fieldsDefinitionsCollectionResponse = await client.FieldDefinitionsClient.ListFieldDefinitionsAsync(new ListFieldDefinitionsParameters()
@@ -226,7 +225,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         /**
          * Prints the fields assigned to the entry specified by the given entry Id.
          */
-        public static async Task PrintEntryFields(IRepositoryApiClient client, string repositoryId, int entryId)
+        public static async Task PrintEntryFieldsAsync(IRepositoryApiClient client, string repositoryId, int entryId)
         {
             var collectionResponse = await client.EntriesClient.ListFieldsAsync(new ListFieldsParameters()
             {
@@ -243,7 +242,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         /**
          * Exports the electronic document part of an entry and prints its content-type.
          */
-        public static async Task ExportEntryExampleAsync(IRepositoryApiClient client, string repositoryId, int entryId)
+        public static async Task ExportEntryAsync(IRepositoryApiClient client, string repositoryId, int entryId)
         {
             AuditReason exportDocumentAuditReason = await GetExportDocumentAuditReason(client, repositoryId);
 
@@ -269,7 +268,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         /**
          * Performs a simple search for the given file name, and prints out the search results.
          */
-        public static async Task SearchForImportedDocument(IRepositoryApiClient client, string repositoryId, string sampleProjectFileName)
+        public static async Task SearchForImportedDocumentAsync(IRepositoryApiClient client, string repositoryId, string sampleProjectFileName)
         {
             Console.WriteLine("\nSearching for imported document...");
             var collectionResponse = await client.SimpleSearchesClient.SearchEntryAsync(new SearchEntryParameters()
@@ -335,7 +334,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         /**
          * Uses the asynchronous import API to import a large file into the specified folder.
          */
-        public static async Task ImportLargeDocument(IRepositoryApiClient client, string repositoryId, int folderEntryId)
+        public static async Task ImportLargeDocumentInChunksAsync(IRepositoryApiClient client, string repositoryId, int folderEntryId)
         {
             var fileToUpload = new FileInfo(@"TestFiles/sample.pdf");
             string mimeType = "application/pdf";

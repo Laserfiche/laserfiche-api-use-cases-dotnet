@@ -27,7 +27,8 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 
                 var tableUrls = await PrintLookupTableNamesAsync(laserficheODataHttpClient);
                 var tableUrl = tableUrls.First();
-                tableUrl = "Paolo_All_Data_Types";
+                //TODO: get columns definition $metadata
+                tableUrl = "Paolo_All_Data_Types";//"Paolo_10000_Rows";// "Paolo_All_Data_Types";  //TODO REMOVE
 
                 await ExportLookupTableCsvAsync(laserficheODataHttpClient, tableUrl);
             }
@@ -37,6 +38,12 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             }
         }
 
+        /// <summary>
+        /// Returns an HttpClient that knows how to get / refresh a Laserfiche API Access Token with built-in in retry.
+        /// </summary>
+        /// <param name="config"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
         private static HttpClient CreateLaserficheODataHttpClient(ApiClientConfiguration config)
         {
             string requiredScopes = "table.Read table.Write";
@@ -48,7 +55,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                     (domain) => DomainUtils.GetODataApiBaseUri(domain));
 
                 var httpClient = new HttpClient(apiHttpMessageHandler);
-                httpClient.BaseAddress = new Uri("https://api.a.clouddev.laserfiche.com/odata4/"); //TODO
+                httpClient.BaseAddress = new Uri("http://example.com"); //Needed to use relative URLs in http requests.
                 return httpClient;
             }
             else
@@ -63,7 +70,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         private static async Task<IList<string>> PrintLookupTableNamesAsync(HttpClient laserficheODataHttpClient)
         {
             Console.WriteLine($"\nRetrieving Lookup tables:");
-            var httpResponse = await laserficheODataHttpClient.GetAsync($"table");
+            var httpResponse = await laserficheODataHttpClient.GetAsync($"/table");
             httpResponse.EnsureSuccessStatusCode();
             JsonDocument content = await httpResponse.Content.ReadFromJsonAsync<JsonDocument>();
             var value = content.RootElement.GetProperty("value");
@@ -111,36 +118,23 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             ODataQueryParameters queryParameters)
         {
             Console.WriteLine($"\nQuerying Lookup table {tableUrl}:");
-            JsonDocument content;
-            var queryTableUrl = $"table/{Uri.EscapeDataString(tableUrl)}";
+            string queryTableUrl = $"table/{Uri.EscapeDataString(tableUrl)}";
             var qs = queryParameters?.ToQueryString();
             if (qs != null)
                 queryTableUrl += "?" + qs;
 
-            using (var httpResponse = await laserficheODataHttpClient.GetAsync(queryTableUrl))
+            while (!string.IsNullOrWhiteSpace(queryTableUrl))
             {
-                httpResponse.EnsureSuccessStatusCode();
-                content = await httpResponse.Content.ReadFromJsonAsync<JsonDocument>();
-                foreach (var item in content.RootElement.GetProperty("value").EnumerateArray())
-                {
-                    processTableRow(item);
-                };
-            }
-
-            while (true)
-            {
-                var nextLink = content.RootElement.GetStringPropertyValue("@odata.nextLink");
-                if (string.IsNullOrWhiteSpace(nextLink))
-                    break;
-
-                using (var httpResponse = await laserficheODataHttpClient.GetAsync(nextLink))
+                using (var httpResponse = await laserficheODataHttpClient.GetAsync(queryTableUrl))
                 {
                     httpResponse.EnsureSuccessStatusCode();
-                    content = await httpResponse.Content.ReadFromJsonAsync<JsonDocument>();
+                    JsonDocument content = await httpResponse.Content.ReadFromJsonAsync<JsonDocument>();
                     foreach (var item in content.RootElement.GetProperty("value").EnumerateArray())
                     {
                         processTableRow(item);
                     };
+
+                    queryTableUrl = content.RootElement.GetStringPropertyValue("@odata.nextLink");
                 }
             }
         }
