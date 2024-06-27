@@ -11,6 +11,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 {
@@ -19,6 +20,8 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
     /// </summary>
     static class ODataApiClientExamples
     {
+        const char CSV_COMMA_SEPARATOR = ',';
+
         public static async Task ExecuteAsync(ApiClientConfiguration config)
         {
             try
@@ -26,11 +29,14 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 HttpClient laserficheODataHttpClient = CreateLaserficheODataHttpClient(config);
 
                 var tableUrls = await PrintLookupTableNamesAsync(laserficheODataHttpClient);
+                Dictionary<string, Entity> entityDictionary = await GetTableMetadataAsync(laserficheODataHttpClient);
+
                 var tableUrl = tableUrls.First();
-                //TODO: get columns definition $metadata
                 tableUrl = "Paolo_All_Data_Types";//"Paolo_10000_Rows";// "Paolo_All_Data_Types";  //TODO REMOVE
 
-                await ExportLookupTableCsvAsync(laserficheODataHttpClient, tableUrl);
+                Entity entity = entityDictionary[tableUrl];
+                IList<string> columnNames = entity.properties.Select(r => r.name).Where(r => r != entity.key).ToList();
+                await ExportLookupTableCsvAsync(laserficheODataHttpClient, tableUrl, columnNames);
             }
             catch (Exception e)
             {
@@ -46,7 +52,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         /// <exception cref="Exception"></exception>
         private static HttpClient CreateLaserficheODataHttpClient(ApiClientConfiguration config)
         {
-            string requiredScopes = "table.Read table.Write";
+            string requiredScopes = "table.Read table.Write project/Global";
             if (config.AuthorizationType == AuthorizationType.CLOUD_ACCESS_KEY)
             {
                 var httpRequestHandler = new OAuthClientCredentialsHandler(config.ServicePrincipalKey, config.AccessKey, requiredScopes);
@@ -90,21 +96,36 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             return urls;
         }
 
+        private static async Task<Dictionary<string, Entity>> GetTableMetadataAsync(HttpClient laserficheODataHttpClient)
+        {
+            Console.WriteLine($"\nRetrieving Lookup tables OData $metadata document that contains column definitions.");
+            var httpResponse = await laserficheODataHttpClient.GetAsync($"/table/$metadata");
+            httpResponse.EnsureSuccessStatusCode();
+            using var contentStream = await httpResponse.Content.ReadAsStreamAsync();
+            var edmx = XDocument.Load(contentStream);
+
+            Dictionary<string, Entity> entityDictionary = EdmxUtils.EdmxToEntityDictionary(edmx);
+            return entityDictionary;
+        }
+
         private static async Task ExportLookupTableCsvAsync(
             HttpClient laserficheODataHttpClient,
             string tableUrl,
-            ODataQueryParameters queryParameters = null)
+            IList<string> columnNames)
         {
             Console.WriteLine($"\nExporting Lookup table {tableUrl}...");
 
             int rowCount = 0;
             var tableCsv = new StringBuilder();
+            string columnsHeaders = string.Join(CSV_COMMA_SEPARATOR, columnNames);
+            tableCsv.AppendLine(columnsHeaders);
             Action<JsonElement> processTableRow = (tableRow) =>
             {
                 rowCount++;
                 tableCsv.AppendLine(tableRow.ToCsv());
             };
-            await QueryLookupTableAsync(laserficheODataHttpClient, tableUrl, processTableRow, queryParameters);
+            await QueryLookupTableAsync(laserficheODataHttpClient, tableUrl, processTableRow,
+                new ODataQueryParameters { Select = columnsHeaders });
             var csv = tableCsv.ToString();
 
             Console.WriteLine(csv);
@@ -152,7 +173,6 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         static string ToCsv(this JsonElement element)
         {
             StringBuilder sb = new();
-            const char separator = ',';
             if (element.ValueKind != JsonValueKind.Object)
                 throw new ArgumentException(nameof(element.ValueKind));
 
@@ -161,7 +181,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             {
                 if (!first)
                 {
-                    sb.Append(separator);
+                    sb.Append(CSV_COMMA_SEPARATOR);
                 }
                 first = false;
                 string strValue = property.Value.ToString();
@@ -169,11 +189,11 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 {
                     case JsonValueKind.String:
                         strValue = property.Value.GetString();
-                        if (strValue != null && strValue.Any(r => r == separator || r == '"'))
+                        if (strValue != null && strValue.Any(r => r == CSV_COMMA_SEPARATOR || r == '"'))
                             strValue = "\"" + strValue.Replace("\"", "\"\"") + "\"";
                         break;
                     case JsonValueKind.Number:
-                        strValue = property.Value.GetDouble().ToString(CultureInfo.InvariantCulture);
+                        strValue = property.Value.GetDecimal().ToString(CultureInfo.InvariantCulture);
                         break;
                     case JsonValueKind.False:
                         strValue = "false";

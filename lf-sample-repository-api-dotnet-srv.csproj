@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="DotNetEnv" Version="3.0.0" />
-    <PackageReference Include="Laserfiche.Repository.Api.Client.V2" Version="1.0.2-beta-9671796235" />
+    <PackageReference Include="Laserfiche.Repository.Api.Client.V2" Version="1.0.2" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
