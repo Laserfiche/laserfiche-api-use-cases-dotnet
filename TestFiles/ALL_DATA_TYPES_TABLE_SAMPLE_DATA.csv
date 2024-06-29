@@ -1,0 +1,3 @@
+Integer,Text,DateTime,Numeric,Boolean
+1,"Text that contains commas (,) and/or double quotes ("") must be inclosed in double quotes", 2024-05-29T00:00:00.000Z,-123.45,FALSE
+-2,This is text,2023-12-29T13:14:15.123Z,123.45,TRUE

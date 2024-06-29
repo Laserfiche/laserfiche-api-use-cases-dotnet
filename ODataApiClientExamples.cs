@@ -1,17 +1,12 @@
 // Copyright Laserfiche.
 // Licensed under the MIT License. See LICENSE in the project root for license information.
-using Laserfiche.Api.Client.HttpHandlers;
-using Laserfiche.Api.Client.Utils;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 {
@@ -21,22 +16,32 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
     static class ODataApiClientExamples
     {
         const char CSV_COMMA_SEPARATOR = ',';
+        const string ALL_DATA_TYPES_TABLE_SAMPLE_lookup_table_name = "ALL_DATA_TYPES_TABLE_SAMPLE";
+
 
         public static async Task ExecuteAsync(ApiClientConfiguration config)
         {
             try
             {
-                HttpClient laserficheODataHttpClient = CreateLaserficheODataHttpClient(config);
+                string scopes = "table.Read table.Write project/Global";
 
-                var tableUrls = await PrintLookupTableNamesAsync(laserficheODataHttpClient);
-                Dictionary<string, Entity> entityDictionary = await GetTableMetadataAsync(laserficheODataHttpClient);
+                // Create the http client
+                LaserficheODataHttpClient laserficheODataHttpClient = ODataApiUtils.CreateLaserficheODataHttpClient(config, scopes);
 
-                var tableUrl = tableUrls.First();
-                tableUrl = "Paolo_All_Data_Types";//"Paolo_10000_Rows";// "Paolo_All_Data_Types";  //TODO REMOVE
+                // Get lookup table names
+                await PrintLookupTableNamesAsync(laserficheODataHttpClient);
 
-                Entity entity = entityDictionary[tableUrl];
-                IList<string> columnNames = entity.properties.Select(r => r.name).Where(r => r != entity.key).ToList();
-                await ExportLookupTableCsvAsync(laserficheODataHttpClient, tableUrl, columnNames);
+                // Get lookup tables definitions
+                Dictionary<string, Entity> entityDictionary = await laserficheODataHttpClient.GetTableMetadataAsync();
+
+                // Get ALL_DATA_TYPES_TABLE_SAMPLE lookup table entity definition
+                if (!entityDictionary.TryGetValue(ALL_DATA_TYPES_TABLE_SAMPLE_lookup_table_name, out Entity allDataTypesEntity))
+                {
+                    throw new Exception($"Lookup table '{ALL_DATA_TYPES_TABLE_SAMPLE_lookup_table_name}' not found. Please go to 'Process Automation / Data Management' and create a lookup table named '{ALL_DATA_TYPES_TABLE_SAMPLE_lookup_table_name}' using 'ALL_DATA_TYPES_TABLE_SAMPLE_DATA.csv' file in this project.");
+                };
+
+                // Export ALL_DATA_TYPES_TABLE_SAMPLE lookup table as csv.
+                await ExportLookupTableCsvAsync(laserficheODataHttpClient, allDataTypesEntity);
             }
             catch (Exception e)
             {
@@ -44,76 +49,29 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             }
         }
 
-        /// <summary>
-        /// Returns an HttpClient that knows how to get / refresh a Laserfiche API Access Token with built-in in retry.
-        /// </summary>
-        /// <param name="config"></param>
-        /// <returns></returns>
-        /// <exception cref="Exception"></exception>
-        private static HttpClient CreateLaserficheODataHttpClient(ApiClientConfiguration config)
-        {
-            string requiredScopes = "table.Read table.Write project/Global";
-            if (config.AuthorizationType == AuthorizationType.CLOUD_ACCESS_KEY)
-            {
-                var httpRequestHandler = new OAuthClientCredentialsHandler(config.ServicePrincipalKey, config.AccessKey, requiredScopes);
-                var apiHttpMessageHandler = new ApiHttpMessageHandler(
-                    httpRequestHandler,
-                    (domain) => DomainUtils.GetODataApiBaseUri(domain));
-
-                var httpClient = new HttpClient(apiHttpMessageHandler);
-                httpClient.BaseAddress = new Uri("http://example.com"); //Needed to use relative URLs in http requests.
-                return httpClient;
-            }
-            else
-            {
-                throw new Exception($"Invalid value for '{ApiClientConfiguration.AUTHORIZATION_TYPE}'. It can only be '{nameof(AuthorizationType.CLOUD_ACCESS_KEY)}' or '{nameof(AuthorizationType.API_SERVER_USERNAME_PASSWORD)}'.");
-            }
-        }
-
         /**
         * Prints all the Lookup Table names accessible by the user.
         */
-        private static async Task<IList<string>> PrintLookupTableNamesAsync(HttpClient laserficheODataHttpClient)
+        private static async Task<IList<string>> PrintLookupTableNamesAsync(LaserficheODataHttpClient laserficheODataHttpClient)
         {
             Console.WriteLine($"\nRetrieving Lookup tables:");
-            var httpResponse = await laserficheODataHttpClient.GetAsync($"/table");
-            httpResponse.EnsureSuccessStatusCode();
-            JsonDocument content = await httpResponse.Content.ReadFromJsonAsync<JsonDocument>();
-            var value = content.RootElement.GetProperty("value");
-
-            var urls = new List<string>();
-            foreach (var element in value.EnumerateArray())
+            var tableNames = await laserficheODataHttpClient.GetLookupTableNamesAsync();
+            foreach (var tableName in tableNames)
             {
-                string kind = element.GetStringPropertyValue("kind");
-                if (kind == "EntitySet")
-                {
-                    string tableName = element.GetStringPropertyValue("name");
-                    string url = element.GetStringPropertyValue("url");
-                    urls.Add(url);
-                    Console.WriteLine($"  - Lookup table name: '{tableName}', url: '{url}'");
-                }
+                Console.WriteLine($"  - {tableName}");
             }
-            return urls;
+            return tableNames;
         }
 
-        private static async Task<Dictionary<string, Entity>> GetTableMetadataAsync(HttpClient laserficheODataHttpClient)
-        {
-            Console.WriteLine($"\nRetrieving Lookup tables OData $metadata document that contains column definitions.");
-            var httpResponse = await laserficheODataHttpClient.GetAsync($"/table/$metadata");
-            httpResponse.EnsureSuccessStatusCode();
-            using var contentStream = await httpResponse.Content.ReadAsStreamAsync();
-            var edmx = XDocument.Load(contentStream);
-
-            Dictionary<string, Entity> entityDictionary = EdmxUtils.EdmxToEntityDictionary(edmx);
-            return entityDictionary;
-        }
 
         private static async Task ExportLookupTableCsvAsync(
-            HttpClient laserficheODataHttpClient,
-            string tableUrl,
-            IList<string> columnNames)
+            LaserficheODataHttpClient laserficheODataHttpClient,
+            Entity allDataTypesEntity)
         {
-            Console.WriteLine($"\nExporting Lookup table {tableUrl}...");
+            Console.WriteLine($"\nExporting Lookup table {allDataTypesEntity.name}...");
+
+            // Get ALL_DATA_TYPES_TABLE_SAMPLE lookup table columns names without the '_key' column.
+            IList<string> columnNames = allDataTypesEntity.properties.Select(r => r.name).Where(r => r != allDataTypesEntity.keyName).ToList();
 
             int rowCount = 0;
             var tableCsv = new StringBuilder();
@@ -124,50 +82,12 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 rowCount++;
                 tableCsv.AppendLine(tableRow.ToCsv());
             };
-            await QueryLookupTableAsync(laserficheODataHttpClient, tableUrl, processTableRow,
+            await laserficheODataHttpClient.QueryLookupTableAsync(allDataTypesEntity.name, processTableRow,
                 new ODataQueryParameters { Select = columnsHeaders });
             var csv = tableCsv.ToString();
 
             Console.WriteLine(csv);
-            Console.WriteLine($"\nDone Exporting Lookup table {tableUrl} with {rowCount} rows.");
-        }
-
-        private static async Task QueryLookupTableAsync(
-            HttpClient laserficheODataHttpClient,
-            string tableUrl,
-            Action<JsonElement> processTableRow,
-            ODataQueryParameters queryParameters)
-        {
-            Console.WriteLine($"\nQuerying Lookup table {tableUrl}:");
-            string queryTableUrl = $"table/{Uri.EscapeDataString(tableUrl)}";
-            var qs = queryParameters?.ToQueryString();
-            if (qs != null)
-                queryTableUrl += "?" + qs;
-
-            while (!string.IsNullOrWhiteSpace(queryTableUrl))
-            {
-                using (var httpResponse = await laserficheODataHttpClient.GetAsync(queryTableUrl))
-                {
-                    httpResponse.EnsureSuccessStatusCode();
-                    JsonDocument content = await httpResponse.Content.ReadFromJsonAsync<JsonDocument>();
-                    foreach (var item in content.RootElement.GetProperty("value").EnumerateArray())
-                    {
-                        processTableRow(item);
-                    };
-
-                    queryTableUrl = content.RootElement.GetStringPropertyValue("@odata.nextLink");
-                }
-            }
-        }
-
-        static string GetStringPropertyValue(this JsonElement element, string propertyName)
-        {
-            if (element.TryGetProperty(propertyName, out JsonElement nameElement))
-            {
-                var value = nameElement.GetString();
-                return value;
-            }
-            return null;
+            Console.WriteLine($"\nDone Exporting Lookup table {allDataTypesEntity.name} with {rowCount} rows.");
         }
 
         static string ToCsv(this JsonElement element)
@@ -208,53 +128,6 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 sb.Append(strValue);
             }
             return sb.ToString();
-        }
-    }
-
-
-
-    public class ODataQueryParameters
-    {
-        /// <summary>
-        /// Aggregation behavior is triggered using the query option $apply. It takes a sequence of set transformations, separated by forward slashes to express that they are consecutively applied, i.e., the result of each transformation is the input to the next transformation.
-        /// </summary>
-        public string Apply { get; set; }
-
-        /// <summary>
-        /// A function that must evaluate to true for a record to be returned. e.g.: '"first_name eq 'Paolo'"
-        /// </summary>
-        public string Filter { get; set; }
-
-        /// <summary>
-        /// Limits the properties returned in the result.
-        /// </summary>
-        public string Select { get; set; }
-
-        /// <summary>
-        /// Specifies the order in which items are returned.
-        /// </summary>
-        public string Orderby { get; set; }
-
-        /// <summary>
-        /// Escaped URL querystring parameters.
-        /// </summary>
-        /// <returns></returns>
-        public string ToQueryString()
-        {
-            var qslist = new List<string>();
-            if (!string.IsNullOrWhiteSpace(Apply))
-                qslist.Add($"$apply={Uri.EscapeDataString(Apply)}");
-
-            if (!string.IsNullOrWhiteSpace(Filter))
-                qslist.Add($"$filter={Uri.EscapeDataString(Filter)}");
-
-            if (!string.IsNullOrWhiteSpace(Select))
-                qslist.Add($"$select={Uri.EscapeDataString(Select)}");
-
-            if (!string.IsNullOrWhiteSpace(Orderby))
-                qslist.Add($"$orderby={Uri.EscapeDataString(Orderby)}");
-
-            return qslist.Count == 0 ? null : string.Join('&', qslist);
         }
     }
 }
