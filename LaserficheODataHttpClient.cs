@@ -2,6 +2,7 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
 using Laserfiche.Api.Client.HttpHandlers;
+using Laserfiche.Api.Client.OAuth;
 using Laserfiche.Api.Client.Utils;
 using System;
 using System.Collections.Generic;
@@ -14,37 +15,35 @@ using System.Xml.Linq;
 
 namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 {
-    internal static class ODataApiUtils
+    /// <summary>
+    /// Laserfiche OData API Client. See https://api.laserfiche.com/odata4/swagger/index.html?urls.primaryName=v1
+    /// </summary>
+    public class LaserficheODataHttpClient
     {
-        /// <summary>
-        /// Returns an HttpClient that knows how to get / refresh a Laserfiche API Access Token with built-in in retry.
-        /// </summary>
-        /// <param name="config"></param>
-        /// <param name="scope">Required scope E.g. "table.Read table.Write project/Global"</param>
-        /// <returns></returns>
-        /// <exception cref="Exception"></exception>
-        public static LaserficheODataHttpClient CreateLaserficheODataHttpClient(ApiClientConfiguration config, string scope)
+        private readonly HttpClient _httpClient;
+        private LaserficheODataHttpClient(IHttpRequestHandler httpRequestHandler)
         {
-            if (config.AuthorizationType == AuthorizationType.CLOUD_ACCESS_KEY)
-            {
-                var httpRequestHandler = new OAuthClientCredentialsHandler(config.ServicePrincipalKey, config.AccessKey, scope);
-                var apiHttpMessageHandler = new ApiHttpMessageHandler(
-                    httpRequestHandler,
-                    (domain) => DomainUtils.GetODataApiBaseUri(domain));
+            if (httpRequestHandler == null)
+                throw new ArgumentNullException(nameof(httpRequestHandler));
 
-                var httpClient = new LaserficheODataHttpClient(apiHttpMessageHandler);
-                httpClient.BaseAddress = new Uri("http://example.com"); //Needed to use relative URLs in http requests.
-                return httpClient;
-            }
-            else
-            {
-                throw new Exception($"Invalid value for '{ApiClientConfiguration.AUTHORIZATION_TYPE}'. It can only be '{nameof(AuthorizationType.CLOUD_ACCESS_KEY)}' or '{nameof(AuthorizationType.API_SERVER_USERNAME_PASSWORD)}'.");
-            }
+
+            var apiHttpMessageHandler = new ApiHttpMessageHandler(
+                httpRequestHandler,
+                (domain) => DomainUtils.GetODataApiBaseUri(domain));
+
+            _httpClient = new HttpClient(apiHttpMessageHandler);
+            _httpClient.BaseAddress = new Uri("http://example.com"); //Needed to use relative URLs in http requests.
         }
 
-        public static async Task<IList<string>> GetLookupTableNamesAsync(this LaserficheODataHttpClient laserficheODataHttpClient)
+        public static LaserficheODataHttpClient CreateFromServicePrincipalKey(string servicePrincipalKey, AccessKey accessKey, string scope)
         {
-            var httpResponse = await laserficheODataHttpClient.GetAsync($"/table");
+            var httpRequestHandler = new OAuthClientCredentialsHandler(servicePrincipalKey, accessKey, scope);
+            return new LaserficheODataHttpClient(httpRequestHandler);
+        }
+
+        public async Task<IList<string>> GetLookupTableNamesAsync()
+        {
+            var httpResponse = await _httpClient.GetAsync($"/table");
             httpResponse.EnsureSuccessStatusCode();
             JsonDocument content = await httpResponse.Content.ReadFromJsonAsync<JsonDocument>();
             var value = content.RootElement.GetProperty("value");
@@ -63,23 +62,22 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             return tableNames;
         }
 
-        public static async Task<Dictionary<string, Entity>> GetTableMetadataAsync(this LaserficheODataHttpClient laserficheODataHttpClient)
+        public async Task<Dictionary<string, Entity>> GetTableMetadataAsync()
         {
-            var httpResponse = await laserficheODataHttpClient.GetAsync($"/table/$metadata");
+            var httpResponse = await _httpClient.GetAsync($"/table/$metadata");
             httpResponse.EnsureSuccessStatusCode();
             using var contentStream = await httpResponse.Content.ReadAsStreamAsync();
-            var edmx = XDocument.Load(contentStream);
-            Dictionary<string, Entity> entityDictionary = ODataApiUtils.EdmxToEntityDictionary(edmx);
+            var edmXml = XDocument.Load(contentStream);
+            Dictionary<string, Entity> entityDictionary = Utils.EdmxToEntityDictionary(edmXml);
             return entityDictionary;
         }
 
-        public static async Task QueryLookupTableAsync(
-           this LaserficheODataHttpClient laserficheODataHttpClient,
+        public async Task QueryLookupTableAsync(
            string tableName,
            Action<JsonElement> processTableRow,
            ODataQueryParameters queryParameters)
         {
-            if(string.IsNullOrWhiteSpace(tableName)) 
+            if (string.IsNullOrWhiteSpace(tableName))
                 throw new ArgumentNullException(nameof(tableName));
 
             string queryTableUrl = $"table/{Uri.EscapeDataString(tableName)}";
@@ -89,7 +87,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 
             while (!string.IsNullOrWhiteSpace(queryTableUrl))
             {
-                using (var httpResponse = await laserficheODataHttpClient.GetAsync(queryTableUrl))
+                using (var httpResponse = await _httpClient.GetAsync(queryTableUrl))
                 {
                     httpResponse.EnsureSuccessStatusCode();
                     JsonDocument content = await httpResponse.Content.ReadFromJsonAsync<JsonDocument>();
@@ -101,39 +99,6 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                     queryTableUrl = content.RootElement.GetStringPropertyValue("@odata.nextLink");
                 }
             }
-        }
-
-        static public Dictionary<string, Entity> EdmxToEntityDictionary(XDocument edmx)
-        {
-            XElement schema = edmx.Descendants().Where(x => x.Name.LocalName == "Schema").FirstOrDefault();
-            int v = 0;
-            string z = v.GetType().ToString();
-            XNamespace ns = schema.GetDefaultNamespace();
-            Dictionary<string, Entity> entityTypes = schema.Descendants(ns + "EntityType")
-                .Select(x => new Entity()
-                {
-                    name = x.Attribute("Name")?.Value,
-                    keyName = x.Descendants(ns + "PropertyRef").FirstOrDefault()?.Attribute("Name")?.Value,
-                    properties = x.Elements(ns + "Property").Select(y => new Property()
-                    {
-                        name = y.Attribute("Name")?.Value,
-                        _type = Type.GetType("System." + ((string)y.Attribute("Type")).Split(new char[] { '.' }).Last()),
-                        nullable = (y.Attribute("Nullable") == null) ? (Boolean?)null : ((string)y.Attribute("Nullable") == "false") ? false : true
-                    }).ToList()
-                })
-                .ToDictionary(x => x.name, x => x);
-
-            return entityTypes;
-        }
-
-        static string GetStringPropertyValue(this JsonElement element, string propertyName)
-        {
-            if (element.TryGetProperty(propertyName, out JsonElement nameElement))
-            {
-                var value = nameElement.GetString();
-                return value;
-            }
-            return null;
         }
     }
 
@@ -148,13 +113,6 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         public string name { get; set; }
         public Type _type { get; set; }
         public Boolean? nullable { get; set; }
-    }
-
-    public class LaserficheODataHttpClient : HttpClient
-    {
-        public LaserficheODataHttpClient(HttpMessageHandler handler) : base(handler)
-        {
-        }
     }
 
     public class ODataQueryParameters
@@ -199,6 +157,42 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 qslist.Add($"$orderby={Uri.EscapeDataString(Orderby)}");
 
             return qslist.Count == 0 ? null : string.Join('&', qslist);
+        }
+    }
+
+    internal static class Utils
+    {
+        public static string GetStringPropertyValue(this JsonElement element, string propertyName)
+        {
+            if (element.TryGetProperty(propertyName, out JsonElement nameElement))
+            {
+                var value = nameElement.GetString();
+                return value;
+            }
+            return null;
+        }
+
+        static public Dictionary<string, Entity> EdmxToEntityDictionary(XDocument edmx)
+        {
+            XElement schema = edmx.Descendants().Where(x => x.Name.LocalName == "Schema").FirstOrDefault();
+            int v = 0;
+            string z = v.GetType().ToString();
+            XNamespace ns = schema.GetDefaultNamespace();
+            Dictionary<string, Entity> entityTypes = schema.Descendants(ns + "EntityType")
+                .Select(x => new Entity()
+                {
+                    name = x.Attribute("Name")?.Value,
+                    keyName = x.Descendants(ns + "PropertyRef").FirstOrDefault()?.Attribute("Name")?.Value,
+                    properties = x.Elements(ns + "Property").Select(y => new Property()
+                    {
+                        name = y.Attribute("Name")?.Value,
+                        _type = Type.GetType("System." + ((string)y.Attribute("Type")).Split(new char[] { '.' }).Last()),
+                        nullable = (y.Attribute("Nullable") == null) ? (Boolean?)null : ((string)y.Attribute("Nullable") == "false") ? false : true
+                    }).ToList()
+                })
+                .ToDictionary(x => x.name, x => x);
+
+            return entityTypes;
         }
     }
 

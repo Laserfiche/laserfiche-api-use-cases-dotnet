@@ -26,7 +26,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 string scopes = "table.Read table.Write project/Global";
 
                 // Create the http client
-                LaserficheODataHttpClient laserficheODataHttpClient = ODataApiUtils.CreateLaserficheODataHttpClient(config, scopes);
+                LaserficheODataHttpClient laserficheODataHttpClient = LaserficheODataHttpClient.CreateFromServicePrincipalKey(config.ServicePrincipalKey, config.AccessKey, scopes);
 
                 // Get lookup table names
                 await PrintLookupTableNamesAsync(laserficheODataHttpClient);
