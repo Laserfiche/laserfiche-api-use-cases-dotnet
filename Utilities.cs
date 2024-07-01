@@ -7,7 +7,6 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 using System.Xml.Linq;
 
 namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
@@ -26,9 +25,9 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             return null;
         }
 
-        static public Dictionary<string, Entity> EdmxToEntityDictionary(XDocument edmx)
+        static public Dictionary<string, Entity> EdmXmlToEntityDictionary(XDocument edmXml)
         {
-            XElement schema = edmx.Descendants().Where(x => x.Name.LocalName == "Schema").FirstOrDefault();
+            XElement schema = edmXml.Descendants().Where(x => x.Name.LocalName == "Schema").FirstOrDefault();
             int v = 0;
             string z = v.GetType().ToString();
             XNamespace ns = schema.GetDefaultNamespace();
@@ -41,7 +40,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                     {
                         Name = y.Attribute("Name")?.Value,
                         SystemType = Type.GetType("System." + ((string)y.Attribute("Type")).Split(new char[] { '.' }).Last()),
-                        Nullable = (y.Attribute("Nullable") == null) ? (Boolean?)null : ((string)y.Attribute("Nullable") == "false") ? false : true
+                        Nullable = (y.Attribute("Nullable") == null) ? (Boolean?)null : (string)y.Attribute("Nullable") != "false"
                     }).ToList()
                 })
                 .ToDictionary(x => x.Name, x => x);

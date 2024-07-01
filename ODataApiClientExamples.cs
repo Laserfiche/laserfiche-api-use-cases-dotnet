@@ -2,7 +2,6 @@
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -48,7 +47,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 var taskId = await ReplaceLookupTableAsync(oDataApiClient, allDataTypesEntity, csvWithAdditionalRow);
 
                 // Monitor replace operation task progress
-                await oDataApiClient.MonitorTaskAsync(taskId);
+                await MonitorReplaceLookupTableTaskAsync(oDataApiClient, taskId);
             }
             catch (Exception e)
             {
@@ -59,10 +58,10 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         /**
         * Prints all the Lookup Table names accessible by the user.
         */
-        private static async Task<IList<string>> PrintLookupTableNamesAsync(ODataApiClient oDataHttpClient)
+        private static async Task<IList<string>> PrintLookupTableNamesAsync(ODataApiClient oDataApiClient)
         {
             Console.WriteLine($"\nRetrieving Lookup tables:");
-            var tableNames = await oDataHttpClient.GetLookupTableNamesAsync();
+            var tableNames = await oDataApiClient.GetLookupTableNamesAsync();
             foreach (var tableName in tableNames)
             {
                 Console.WriteLine($"  - {tableName}");
@@ -72,7 +71,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 
 
         private static async Task<string> ExportLookupTableCsvAsync(
-            ODataApiClient oDataHttpClient,
+            ODataApiClient oDataApiClient,
             Entity allDataTypesEntity)
         {
             Console.WriteLine($"\nExporting Lookup table {allDataTypesEntity.Name}...");
@@ -91,7 +90,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 if (!string.IsNullOrWhiteSpace(rowCsv))
                     tableCsv.AppendLine(rowCsv);
             };
-            await oDataHttpClient.QueryLookupTableAsync(allDataTypesEntity.Name, processTableRow,
+            await oDataApiClient.QueryLookupTableAsync(allDataTypesEntity.Name, processTableRow,
                 new ODataQueryParameters { Select = columnsHeaders });
             var csv = tableCsv.ToString();
 
@@ -101,19 +100,29 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         }
 
         private static async Task<string> ReplaceLookupTableAsync(
-           ODataApiClient oDataHttpClient,
+           ODataApiClient oDataApiClient,
            Entity allDataTypesEntity,
            string csv)
         {
             Console.WriteLine($"\nReplacing Lookup table {allDataTypesEntity.Name}...");
 
-            var taskId = await oDataHttpClient.ReplaceAllRowsAsync(
+            var taskId = await oDataApiClient.ReplaceAllRowsAsync(
                 allDataTypesEntity.Name,
                 new MemoryStream(Encoding.UTF8.GetBytes(csv)));
 
-            Console.WriteLine($"\nReplacing Lookup table {allDataTypesEntity.Name} taskId {taskId}.");
             return taskId;
         }
-
+        private static async Task MonitorReplaceLookupTableTaskAsync(
+            ODataApiClient oDataApiClient,
+            string taskId)
+        {
+            await oDataApiClient.MonitorTaskAsync(taskId,
+                (taskProgress) =>
+                {
+                    Console.WriteLine($" > Task with id '{taskId}' {taskProgress.Status}." +
+                        (taskProgress.Result != null ? " " + System.Text.Json.JsonSerializer.Serialize(taskProgress.Result) : "") +
+                        (taskProgress.Errors != null ? " " + System.Text.Json.JsonSerializer.Serialize(taskProgress.Errors) : ""));
+                });
+        }
     }
 }

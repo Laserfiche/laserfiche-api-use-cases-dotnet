@@ -4,7 +4,6 @@
 using Laserfiche.Api.Client.HttpHandlers;
 using Laserfiche.Api.Client.OAuth;
 using Laserfiche.Api.Client.Utils;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -39,12 +38,24 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             };
         }
 
+        /// <summary>
+        /// Creates a ODataApiClient given a Service Principal Key and application Access Key
+        /// </summary>
+        /// <param name="servicePrincipalKey"></param>
+        /// <param name="accessKey"></param>
+        /// <param name="scope">For example: "table.Read table.Write project/Global"</param>
+        /// <returns></returns>
         public static ODataApiClient CreateFromServicePrincipalKey(string servicePrincipalKey, AccessKey accessKey, string scope)
         {
             var httpRequestHandler = new OAuthClientCredentialsHandler(servicePrincipalKey, accessKey, scope);
             return new ODataApiClient(httpRequestHandler);
         }
 
+        /// <summary>
+        /// Returns Lookup Table names that are accessible by the current user.
+        /// </summary>
+        /// <param name="cancel"></param>
+        /// <returns></returns>
         public async Task<IList<string>> GetLookupTableNamesAsync(CancellationToken cancel = default)
         {
             var httpResponse = await _httpClient.GetAsync($"/table", cancel);
@@ -65,16 +76,30 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             return tableNames;
         }
 
+        /// <summary>
+        /// Returns The Lookup Tables definitions that are accessible by the current user.
+        /// </summary>
+        /// <param name="cancel"></param>
+        /// <returns></returns>
         public async Task<Dictionary<string, Entity>> GetTableMetadataAsync(CancellationToken cancel = default)
         {
             var httpResponse = await _httpClient.GetAsync($"/table/$metadata", cancel);
             httpResponse.EnsureSuccessStatusCode();
             using var contentStream = await httpResponse.Content.ReadAsStreamAsync(cancel);
             var edmXml = XDocument.Load(contentStream);
-            Dictionary<string, Entity> entityDictionary = Utilities.EdmxToEntityDictionary(edmXml);
+            Dictionary<string, Entity> entityDictionary = Utilities.EdmXmlToEntityDictionary(edmXml);
             return entityDictionary;
         }
 
+        /// <summary>
+        /// Query a Lookup Table.
+        /// </summary>
+        /// <param name="tableName"></param>
+        /// <param name="processTableRow"></param>
+        /// <param name="queryParameters"></param>
+        /// <param name="cancel"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
         public async Task QueryLookupTableAsync(
            string tableName,
            Action<JsonElement> processTableRow,
@@ -136,8 +161,16 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             return taskId;
         }
 
+        /// <summary>
+        /// Monitor the progress of a long running task. 
+        /// </summary>
+        /// <param name="taskId"></param>
+        /// <param name="cancel"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentNullException"></exception>
         public async Task MonitorTaskAsync(
             string taskId,
+            Action<TaskProgress> handleTaskProgress,
             CancellationToken cancel = default)
         {
             if (string.IsNullOrWhiteSpace(taskId))
@@ -150,14 +183,13 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 httpResponse.EnsureSuccessStatusCode();
                 var contentTxt = await httpResponse.Content.ReadAsStringAsync(cancel);
                 TaskProgress taskProgress = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskProgress>(contentTxt);
-
-                Console.WriteLine($" > Task {taskId} Status: {taskProgress.Status}." +
-                    taskProgress.Result != null ? " " + System.Text.Json.JsonSerializer.Serialize(taskProgress.Result) : "" +
-                    taskProgress.Errors != null ? " " + System.Text.Json.JsonSerializer.Serialize(taskProgress.Errors) : "");
+                handleTaskProgress(taskProgress);
 
                 bool done = taskProgress.Status == TaskStatus.Completed || taskProgress.Status == TaskStatus.Failed || taskProgress.Status == TaskStatus.Cancelled;
                 if (done)
                     break;
+
+                await Task.Delay(100);
             }
         }
     }
