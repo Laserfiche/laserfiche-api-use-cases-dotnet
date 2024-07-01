@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -15,7 +16,6 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
     /// </summary>
     static class ODataApiClientExamples
     {
-        const char CSV_COMMA_SEPARATOR = ',';
         const string ALL_DATA_TYPES_TABLE_SAMPLE_lookup_table_name = "ALL_DATA_TYPES_TABLE_SAMPLE";
 
 
@@ -26,13 +26,13 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 string scopes = "table.Read table.Write project/Global";
 
                 // Create the http client
-                LaserficheODataHttpClient laserficheODataHttpClient = LaserficheODataHttpClient.CreateFromServicePrincipalKey(config.ServicePrincipalKey, config.AccessKey, scopes);
+                ODataApiClient oDataApiClient = ODataApiClient.CreateFromServicePrincipalKey(config.ServicePrincipalKey, config.AccessKey, scopes);
 
                 // Get lookup table names
-                await PrintLookupTableNamesAsync(laserficheODataHttpClient);
+                await PrintLookupTableNamesAsync(oDataApiClient);
 
                 // Get lookup tables definitions
-                Dictionary<string, Entity> entityDictionary = await laserficheODataHttpClient.GetTableMetadataAsync();
+                Dictionary<string, Entity> entityDictionary = await oDataApiClient.GetTableMetadataAsync();
 
                 // Get ALL_DATA_TYPES_TABLE_SAMPLE lookup table entity definition
                 if (!entityDictionary.TryGetValue(ALL_DATA_TYPES_TABLE_SAMPLE_lookup_table_name, out Entity allDataTypesEntity))
@@ -41,7 +41,14 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 };
 
                 // Export ALL_DATA_TYPES_TABLE_SAMPLE lookup table as csv.
-                await ExportLookupTableCsvAsync(laserficheODataHttpClient, allDataTypesEntity);
+                string csv = await ExportLookupTableCsvAsync(oDataApiClient, allDataTypesEntity);
+
+                // Replace ALL_DATA_TYPES_TABLE_SAMPLE lookup table as csv.
+                var csvWithAdditionalRow = csv + csv.Trim().Split(Environment.NewLine).Last(); //Append a duplicate of the last row
+                var taskId = await ReplaceLookupTableAsync(oDataApiClient, allDataTypesEntity, csvWithAdditionalRow);
+
+                // Monitor replace operation task progress
+                await oDataApiClient.MonitorTaskAsync(taskId);
             }
             catch (Exception e)
             {
@@ -52,10 +59,10 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         /**
         * Prints all the Lookup Table names accessible by the user.
         */
-        private static async Task<IList<string>> PrintLookupTableNamesAsync(LaserficheODataHttpClient laserficheODataHttpClient)
+        private static async Task<IList<string>> PrintLookupTableNamesAsync(ODataApiClient oDataHttpClient)
         {
             Console.WriteLine($"\nRetrieving Lookup tables:");
-            var tableNames = await laserficheODataHttpClient.GetLookupTableNamesAsync();
+            var tableNames = await oDataHttpClient.GetLookupTableNamesAsync();
             foreach (var tableName in tableNames)
             {
                 Console.WriteLine($"  - {tableName}");
@@ -64,70 +71,49 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         }
 
 
-        private static async Task ExportLookupTableCsvAsync(
-            LaserficheODataHttpClient laserficheODataHttpClient,
+        private static async Task<string> ExportLookupTableCsvAsync(
+            ODataApiClient oDataHttpClient,
             Entity allDataTypesEntity)
         {
-            Console.WriteLine($"\nExporting Lookup table {allDataTypesEntity.name}...");
+            Console.WriteLine($"\nExporting Lookup table {allDataTypesEntity.Name}...");
 
             // Get ALL_DATA_TYPES_TABLE_SAMPLE lookup table columns names without the '_key' column.
-            IList<string> columnNames = allDataTypesEntity.properties.Select(r => r.name).Where(r => r != allDataTypesEntity.keyName).ToList();
+            IList<string> columnNames = allDataTypesEntity.Properties.Select(r => r.Name).Where(r => r != allDataTypesEntity.KeyName).ToList();
 
             int rowCount = 0;
             var tableCsv = new StringBuilder();
-            string columnsHeaders = string.Join(CSV_COMMA_SEPARATOR, columnNames);
+            string columnsHeaders = string.Join(Utilities.CSV_COMMA_SEPARATOR, columnNames);
             tableCsv.AppendLine(columnsHeaders);
             Action<JsonElement> processTableRow = (tableRow) =>
             {
                 rowCount++;
-                tableCsv.AppendLine(tableRow.ToCsv());
+                var rowCsv = tableRow.ToCsv();
+                if (!string.IsNullOrWhiteSpace(rowCsv))
+                    tableCsv.AppendLine(rowCsv);
             };
-            await laserficheODataHttpClient.QueryLookupTableAsync(allDataTypesEntity.name, processTableRow,
+            await oDataHttpClient.QueryLookupTableAsync(allDataTypesEntity.Name, processTableRow,
                 new ODataQueryParameters { Select = columnsHeaders });
             var csv = tableCsv.ToString();
 
             Console.WriteLine(csv);
-            Console.WriteLine($"\nDone Exporting Lookup table {allDataTypesEntity.name} with {rowCount} rows.");
+            Console.WriteLine($"\nDone Exporting Lookup table {allDataTypesEntity.Name} with {rowCount} rows.");
+            return csv;
         }
 
-        static string ToCsv(this JsonElement element)
+        private static async Task<string> ReplaceLookupTableAsync(
+           ODataApiClient oDataHttpClient,
+           Entity allDataTypesEntity,
+           string csv)
         {
-            StringBuilder sb = new();
-            if (element.ValueKind != JsonValueKind.Object)
-                throw new ArgumentException(nameof(element.ValueKind));
+            Console.WriteLine($"\nReplacing Lookup table {allDataTypesEntity.Name}...");
 
-            bool first = true;
-            foreach (var property in element.EnumerateObject())
-            {
-                if (!first)
-                {
-                    sb.Append(CSV_COMMA_SEPARATOR);
-                }
-                first = false;
-                string strValue = property.Value.ToString();
-                switch (property.Value.ValueKind)
-                {
-                    case JsonValueKind.String:
-                        strValue = property.Value.GetString();
-                        if (strValue != null && strValue.Any(r => r == CSV_COMMA_SEPARATOR || r == '"'))
-                            strValue = "\"" + strValue.Replace("\"", "\"\"") + "\"";
-                        break;
-                    case JsonValueKind.Number:
-                        strValue = property.Value.GetDecimal().ToString(CultureInfo.InvariantCulture);
-                        break;
-                    case JsonValueKind.False:
-                        strValue = "false";
-                        break;
-                    case JsonValueKind.True:
-                        strValue = "true";
-                        break;
-                    default:
-                        strValue = "";
-                        break;
-                }
-                sb.Append(strValue);
-            }
-            return sb.ToString();
+            var taskId = await oDataHttpClient.ReplaceAllRowsAsync(
+                allDataTypesEntity.Name,
+                new MemoryStream(Encoding.UTF8.GetBytes(csv)));
+
+            Console.WriteLine($"\nReplacing Lookup table {allDataTypesEntity.Name} taskId {taskId}.");
+            return taskId;
         }
+
     }
 }
