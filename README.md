@@ -1,14 +1,15 @@
-# lf-sample-repository-api-dotnet-srv
+# laserfiche-api-use-cases-dotnet
 
-Sample .NET core service app that connects to a Laserfiche Cloud or Self-Hosted Repository.
-[Sample Code](./Program.cs)
+Sample .NET C# console application [code](./Program.cs) with sample use cases for:
+- Creating an using a Laserfiche Repository API client to interact with Laserfiche Repositories.
+- Creating an using a Laserfiche OData API client to interact with a Laserfiche Lookup Tables.
 
-## Cloud Prerequisites
+## Prerequisites
 
-### Software Prerequisites
+- A CA, EU, or US Laserfiche Cloud Account
+- .NET 6.0 core SDK
 
-- .NET 8.0 core SDK
-- CA, EU, or US Cloud Web Client account
+NOTE: the version in this branch is NOT compatible with Laserfiche self-hosted repositories. Use [this branch](https://github.com/Laserfiche/lf-sample-repository-api-dotnet-srv/tree/v1#self-hosted-prerequisites) for sample code compatible self-hosted repositories.
 
 ### 1. Create a Service Principal
 
@@ -59,9 +60,10 @@ REPOSITORY_ID="<Repository ID from the 'Repository Administration' page>"
 - Note: The .env file is used in local development environment to set operating system environment variables.
   - DO NOT check-in the .env file in Git.
 
-## Self-Hosted Prerequisites
+### 4. Create a test Lookup Table
 
-See [Use v1 this page](https://github.com/Laserfiche/lf-sample-repository-api-dotnet-srv/tree/v1#self-hosted-prerequisites).
+ - Using Web Client, navigate to Process Automation / Data Management (Global)
+ - Create a new Lookup table named `ALL_DATA_TYPES_TABLE_SAMPLE` by uploading file [TestFiles/ALL_DATA_TYPES_TABLE_SAMPLE.csv](./TestFiles/ALL_DATA_TYPES_TABLE_SAMPLE.csv)
 
 ## Build and Run this App
 
