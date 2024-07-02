@@ -1,5 +1,6 @@
 // Copyright Laserfiche.
 // Licensed under the MIT License. See LICENSE in the project root for license information.
+using Laserfiche.Repository.Api.Client;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,9 +8,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
-using Laserfiche.Repository.Api.Client;
 using TaskStatus = Laserfiche.Repository.Api.Client.TaskStatus;
 
 namespace Laserfiche.Api.RepositoryApi
