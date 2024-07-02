@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
-    <RootNamespace>lf_sample_repository_api_dotnet_srv</RootNamespace>
+    <RootNamespace>Laserfiche.Api</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,6 +13,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="TestFiles\ALL_DATA_TYPES_TABLE_SAMPLE.csv">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="TestFiles\sample.pdf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

@@ -9,10 +9,9 @@ using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
 
-namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
-
+namespace Laserfiche.Api.ODataApi
 {
-    internal static class Utilities
+    internal static class ODataUtilities
     {
         public const char CSV_COMMA_SEPARATOR = ',';
         public static string GetStringPropertyValue(this JsonElement element, string propertyName)

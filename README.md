@@ -61,7 +61,7 @@ REPOSITORY_ID="<Repository ID from the 'Repository Administration' page>"
 
 ## Self-Hosted Prerequisites
 
-See [this page](https://github.com/Laserfiche/lf-sample-repository-api-dotnet-srv/tree/v1#self-hosted-prerequisites).
+See [Use v1 this page](https://github.com/Laserfiche/lf-sample-repository-api-dotnet-srv/tree/v1#self-hosted-prerequisites).
 
 ## Build and Run this App
 

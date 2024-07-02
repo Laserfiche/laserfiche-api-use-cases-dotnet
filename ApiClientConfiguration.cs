@@ -4,7 +4,7 @@ using Laserfiche.Api.Client.OAuth;
 using System;
 using System.IO;
 
-namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
+namespace Laserfiche.Api
 {
     internal enum AuthorizationType
     {

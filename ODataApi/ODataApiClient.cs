@@ -4,6 +4,7 @@
 using Laserfiche.Api.Client.HttpHandlers;
 using Laserfiche.Api.Client.OAuth;
 using Laserfiche.Api.Client.Utils;
+using Laserfiche.Repository.Api.Client;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -13,8 +14,9 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using TaskStatus = Laserfiche.Repository.Api.Client.TaskStatus;
 
-namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
+namespace Laserfiche.Api.ODataApi
 {
     /// <summary>
     /// Laserfiche OData API Client. See https://api.laserfiche.com/odata4/swagger/index.html?urls.primaryName=v1
@@ -87,7 +89,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             httpResponse.EnsureSuccessStatusCode();
             using var contentStream = await httpResponse.Content.ReadAsStreamAsync(cancel);
             var edmXml = XDocument.Load(contentStream);
-            Dictionary<string, Entity> entityDictionary = Utilities.EdmXmlToEntityDictionary(edmXml);
+            Dictionary<string, Entity> entityDictionary = ODataUtilities.EdmXmlToEntityDictionary(edmXml);
             return entityDictionary;
         }
 
@@ -109,14 +111,13 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             if (string.IsNullOrWhiteSpace(tableName))
                 throw new ArgumentNullException(nameof(tableName));
 
-            string queryTableUrl = $"table/{Uri.EscapeDataString(tableName)}";
-            var qs = queryParameters?.ToQueryString();
-            if (qs != null)
-                queryTableUrl += "?" + qs;
+            string url = $"table/{Uri.EscapeDataString(tableName)}";
+            if (queryParameters != null)
+                url = queryParameters.AppendQueryString(url);
 
-            while (!string.IsNullOrWhiteSpace(queryTableUrl))
+            while (!string.IsNullOrWhiteSpace(url))
             {
-                using var httpResponse = await _httpClient.GetAsync(queryTableUrl, cancel);
+                using var httpResponse = await _httpClient.GetAsync(url, cancel);
                 httpResponse.EnsureSuccessStatusCode();
                 JsonDocument content = await httpResponse.Content.ReadFromJsonAsync<JsonDocument>(default(JsonSerializerOptions), cancel);
                 {
@@ -126,7 +127,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                     }
                 };
 
-                queryTableUrl = content.RootElement.GetStringPropertyValue("@odata.nextLink");
+                url = content.RootElement.GetStringPropertyValue("@odata.nextLink");
             }
         }
 
@@ -182,14 +183,14 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 var httpResponse = await _httpClient.GetAsync(url, cancel);
                 httpResponse.EnsureSuccessStatusCode();
                 var contentTxt = await httpResponse.Content.ReadAsStringAsync(cancel);
-                TaskProgress taskProgress = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskProgress>(contentTxt);
+                var taskProgress = Newtonsoft.Json.JsonConvert.DeserializeObject<TaskProgress>(contentTxt);
                 handleTaskProgress(taskProgress);
 
                 bool done = taskProgress.Status == TaskStatus.Completed || taskProgress.Status == TaskStatus.Failed || taskProgress.Status == TaskStatus.Cancelled;
                 if (done)
                     break;
 
-                await Task.Delay(100);
+                await Task.Delay(100, cancel);
             }
         }
     }
@@ -249,6 +250,20 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 qsList.Add($"$orderby={Uri.EscapeDataString(Orderby)}");
 
             return qsList.Count == 0 ? null : string.Join('&', qsList);
+        }
+
+        /// <summary>
+        /// Appends QueryString if any parameter is defined.
+        /// </summary>
+        /// <param name="url"></param>
+        /// <returns></returns>
+        public string AppendQueryString(string url)
+        {
+            var qs = ToQueryString();
+            if (qs != null)
+                url += "?" + qs;
+
+            return url;
         }
     }
 }

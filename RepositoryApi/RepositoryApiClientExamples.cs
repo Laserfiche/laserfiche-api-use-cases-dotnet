@@ -6,9 +6,13 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
+using Laserfiche.Repository.Api.Client;
+using TaskStatus = Laserfiche.Repository.Api.Client.TaskStatus;
 
-namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
+namespace Laserfiche.Api.RepositoryApi
 {
     /// <summary>
     /// Laserfiche Repository API usage examples.
@@ -294,7 +298,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
          */
         public static async Task DeleteSampleProjectFolder(IRepositoryApiClient client, string repositoryId, int sampleProjectFolderEntryId)
         {
-            Console.WriteLine($"\nDeleting sample project folder: '{sampleProjectFolderEntryId}'");
+            Console.WriteLine($"\nDeleting sample project folder: '{sampleProjectFolderEntryId}' ...");
             var taskResponse = await client.EntriesClient.StartDeleteEntryAsync(new StartDeleteEntryParameters()
             {
                 RepositoryId = repositoryId,
@@ -302,20 +306,13 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             });
 
             var taskId = taskResponse.TaskId;
-            Console.WriteLine($"StartDeleteEntryAsync returned Task ID: {taskId}");
-            TaskProgress taskProgress = null;
-            while (taskProgress == null || taskProgress.Status == TaskStatus.NotStarted || taskProgress.Status == TaskStatus.InProgress)
-            {
-                var collectionResponse = await client.TasksClient.ListTasksAsync(new ListTasksParameters()
+            await MonitorTaskAsync(client, repositoryId, taskId,
+                (taskProgress) =>
                 {
-                    RepositoryId = repositoryId,
-                    TaskIds = new List<string> { taskId }
+                    Console.WriteLine($" > Task with id '{taskId}' {taskProgress.Status}." +
+                        (taskProgress.Result != null ? " " + System.Text.Json.JsonSerializer.Serialize(taskProgress.Result) : "") +
+                        (taskProgress.Errors != null && taskProgress.Errors.Count > 0 ? " " + System.Text.Json.JsonSerializer.Serialize(taskProgress.Errors) : ""));
                 });
-                taskProgress = collectionResponse.Value.First(r => r.Id == taskId);
-            }
-
-            var errMsg = taskProgress.Errors != null && taskProgress.Errors.Count > 0 ? (" Errors: " + Newtonsoft.Json.JsonConvert.SerializeObject(taskProgress.Errors)) : "";
-            Console.WriteLine($"{taskProgress.TaskType} Status: {taskProgress.Status}.{errMsg}");
         }
 
         /**
@@ -385,7 +382,13 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             Console.WriteLine($"Started Import Task: {taskId}");
 
             // Step 4: Check/print the status of the import task.
-            await MonitorImportTaskProgressAsync(client, repositoryId, taskId);
+            await MonitorTaskAsync(client, repositoryId, taskId,
+                (taskProgress) =>
+                {
+                    Console.WriteLine($" > Task with id '{taskId}' {taskProgress.Status}." +
+                        (taskProgress.Result != null ? " " + System.Text.Json.JsonSerializer.Serialize(taskProgress.Result) : "") +
+                        (taskProgress.Errors != null ? " " + System.Text.Json.JsonSerializer.Serialize(taskProgress.Errors) : ""));
+                });
         }
 
         /**
@@ -435,7 +438,12 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             throw new Exception($"ERROR uploading file part #{partNumber}. HTTP {httpResponse.StatusCode}");
         }
 
-        private static async Task MonitorImportTaskProgressAsync(IRepositoryApiClient client, string repositoryId, string taskId)
+        private static async Task MonitorTaskAsync(
+            IRepositoryApiClient client,
+            string repositoryId,
+            string taskId,
+            Action<TaskProgress> handleTaskProgress,
+            CancellationToken cancel = default)
         {
             while (true)
             {
@@ -443,29 +451,17 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 {
                     RepositoryId = repositoryId,
                     TaskIds = new List<string> { taskId }
-                });
+                },
+                cancel);
 
                 var taskProgress = collectionResponse.Value.First(r => r.Id == taskId);
-                switch (taskProgress.Status)
-                {
-                    case TaskStatus.Completed:
-                        Console.WriteLine($"Task {taskId} Status: {taskProgress.Status}. {System.Text.Json.JsonSerializer.Serialize(taskProgress.Result)}");
-                        break;
-                    case TaskStatus.Failed:
-                        Console.WriteLine($"Task {taskId} Status: {taskProgress.Status}. Errors:");
-                        foreach (var problemDetails in taskProgress.Errors)
-                        {
-                            Console.WriteLine($"  - {System.Text.Json.JsonSerializer.Serialize(problemDetails)}");
-                        }
-                        break;
-                    default:
-                        Console.WriteLine($"Task {taskId} Status: {taskProgress.Status}");
-                        break;
-                }
+                handleTaskProgress(taskProgress);
 
                 bool done = taskProgress.Status == TaskStatus.Completed || taskProgress.Status == TaskStatus.Failed || taskProgress.Status == TaskStatus.Cancelled;
                 if (done)
                     break;
+
+                await Task.Delay(100, cancel);
             }
         }
     }

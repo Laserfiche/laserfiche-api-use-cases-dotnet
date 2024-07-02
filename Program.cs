@@ -1,9 +1,10 @@
 // Copyright Laserfiche.
 // Licensed under the MIT License. See LICENSE in the project root for license information.
+
 using System;
 using System.Threading.Tasks;
 
-namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
+namespace Laserfiche.Api
 {
     static class Program
     {
@@ -15,9 +16,11 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 throw new Exception("'Laserfiche.Repository.Api.Client.V2' is not supported with self-hosted API Server. Please use 'Laserfiche.Repository.Api.Client' NuGet package");
             }
 
+            Console.WriteLine($"\r\nExecuting OData API client use cases:\r\n");
+            await ODataApi.ODataApiClientExamples.ExecuteAsync(config);
 
-            await ODataApiClientExamples.ExecuteAsync(config);
-            await RepositoryApiClientExamples.ExecuteAsync(config);
+            Console.WriteLine($"\r\nExecuting Repository API client use cases:\r\n");
+            await RepositoryApi.RepositoryApiClientExamples.ExecuteAsync(config);
         }
     }
 }

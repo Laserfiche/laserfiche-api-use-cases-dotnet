@@ -8,7 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
-namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
+namespace Laserfiche.Api.ODataApi
 {
     /// <summary>
     /// Laserfiche OData API usage examples
@@ -22,10 +22,10 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
         {
             try
             {
-                string scopes = "table.Read table.Write project/Global";
+                string scope = "table.Read table.Write project/Global";
 
                 // Create the http client
-                ODataApiClient oDataApiClient = ODataApiClient.CreateFromServicePrincipalKey(config.ServicePrincipalKey, config.AccessKey, scopes);
+                ODataApiClient oDataApiClient = ODataApiClient.CreateFromServicePrincipalKey(config.ServicePrincipalKey, config.AccessKey, scope);
 
                 // Get lookup table names
                 await PrintLookupTableNamesAsync(oDataApiClient);
@@ -36,8 +36,10 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 // Get ALL_DATA_TYPES_TABLE_SAMPLE lookup table entity definition
                 if (!entityDictionary.TryGetValue(ALL_DATA_TYPES_TABLE_SAMPLE_lookup_table_name, out Entity allDataTypesEntity))
                 {
-                    throw new Exception($"Lookup table '{ALL_DATA_TYPES_TABLE_SAMPLE_lookup_table_name}' not found. Please go to 'Process Automation / Data Management' and create a lookup table named '{ALL_DATA_TYPES_TABLE_SAMPLE_lookup_table_name}' using 'ALL_DATA_TYPES_TABLE_SAMPLE_DATA.csv' file in this project.");
+                    throw new Exception($"Lookup table '{ALL_DATA_TYPES_TABLE_SAMPLE_lookup_table_name}' not found. Please go to 'Process Automation / Data Management' and create a lookup table named '{ALL_DATA_TYPES_TABLE_SAMPLE_lookup_table_name}' using '{ALL_DATA_TYPES_TABLE_SAMPLE_lookup_table_name}.csv' file in this project.");
                 };
+
+
 
                 // Export ALL_DATA_TYPES_TABLE_SAMPLE lookup table as csv.
                 string csv = await ExportLookupTableCsvAsync(oDataApiClient, allDataTypesEntity);
@@ -55,9 +57,6 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             }
         }
 
-        /**
-        * Prints all the Lookup Table names accessible by the user.
-        */
         private static async Task<IList<string>> PrintLookupTableNamesAsync(ODataApiClient oDataApiClient)
         {
             Console.WriteLine($"\nRetrieving Lookup tables:");
@@ -69,8 +68,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
             return tableNames;
         }
 
-
-        private static async Task<string> ExportLookupTableCsvAsync(
+        public static async Task<string> ExportLookupTableCsvAsync(
             ODataApiClient oDataApiClient,
             Entity allDataTypesEntity)
         {
@@ -81,7 +79,7 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
 
             int rowCount = 0;
             var tableCsv = new StringBuilder();
-            string columnsHeaders = string.Join(Utilities.CSV_COMMA_SEPARATOR, columnNames);
+            string columnsHeaders = string.Join(ODataUtilities.CSV_COMMA_SEPARATOR, columnNames);
             tableCsv.AppendLine(columnsHeaders);
             Action<JsonElement> processTableRow = (tableRow) =>
             {
@@ -121,8 +119,16 @@ namespace Laserfiche.Repository.Api.Client.Sample.ServiceApp
                 {
                     Console.WriteLine($" > Task with id '{taskId}' {taskProgress.Status}." +
                         (taskProgress.Result != null ? " " + System.Text.Json.JsonSerializer.Serialize(taskProgress.Result) : "") +
-                        (taskProgress.Errors != null ? " " + System.Text.Json.JsonSerializer.Serialize(taskProgress.Errors) : ""));
+                        (taskProgress.Errors != null && taskProgress.Errors.Count > 0 ? " " + System.Text.Json.JsonSerializer.Serialize(taskProgress.Errors) : ""));
                 });
         }
+
+        //private static async Task InsertRowInLookupTable(
+        //   ODataApiClient oDataApiClient,
+        //   string tableName)
+        //{
+        //    var row = oDataApiClient.UpsertTableRowAsync(tableName,null,
+        //        new JsonElement() )
+        //}
     }
 }
