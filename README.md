@@ -6,7 +6,7 @@ Sample .NET C# console application [code](./Program.cs) with sample use cases fo
 
 ## Prerequisites
 
-NOTE: The version used by this branch is NOT compatible with Laserfiche self-hosted repositories. Use [this branch](https://github.com/Laserfiche/lf-sample-repository-api-dotnet-srv/tree/v1#self-hosted-prerequisites) for sample code compatible self-hosted repositories.
+NOTE: The version used by this branch is NOT compatible with Laserfiche self-hosted repositories. Use [this branch](https://github.com/Laserfiche/laserfiche-api-use-cases-dotnet/tree/v1#self-hosted-prerequisites) for sample code compatible self-hosted repositories.
 
 - A Laserfiche Cloud Account
 - .NET 6.0 core SDK
