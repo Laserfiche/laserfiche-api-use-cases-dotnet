@@ -78,4 +78,4 @@ dotnet run
 ```
 
 These commands will install, compile, and execute this program which will print out various use cases defined in
-[Program.cs](./Program.cs). This utilizes both the repository and table APIs.
+[Program.cs](./Program.cs). This contains samples for both the repository and table APIs, but they can be run independently as needed.
