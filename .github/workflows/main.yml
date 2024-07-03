@@ -1,4 +1,4 @@
-name: lf-sample-repository-api-dotnet-srv-CI
+name: laserfiche-api-use-cases-dotnet-CI
 
 on:
   push:
