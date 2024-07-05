@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/lf-sample-repository-api-dotnet-srv.csproj",
+                "${workspaceFolder}/laserfiche-api-use-cases-dotnet.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -19,7 +19,7 @@
             "type": "process",
             "args": [
                 "publish",
-                "${workspaceFolder}/lf-sample-repository-api-dotnet-srv.csproj",
+                "${workspaceFolder}/laserfiche-api-use-cases-dotnet.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -33,7 +33,7 @@
                 "watch",
                 "run",
                 "--project",
-                "${workspaceFolder}/lf-sample-repository-api-dotnet-srv.csproj"
+                "${workspaceFolder}/laserfiche-api-use-cases-dotnet.csproj"
             ],
             "problemMatcher": "$msCompile"
         }
