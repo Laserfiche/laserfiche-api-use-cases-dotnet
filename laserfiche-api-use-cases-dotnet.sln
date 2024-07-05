@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.32510.428
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "lf-sample-repository-api-dotnet-srv", "lf-sample-repository-api-dotnet-srv.csproj", "{7EA539BB-4791-4C09-9485-573CDCD568FC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "laserfiche-api-use-cases-dotnet", "laserfiche-api-use-cases-dotnet.csproj", "{7EA539BB-4791-4C09-9485-573CDCD568FC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

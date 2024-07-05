@@ -1,4 +1,4 @@
-# lf-sample-repository-api-dotnet-srv
+# laserfiche-api-use-cases-dotnet
 
 Sample .NET core service app that connects to a Laserfiche Cloud or Self-Hosted Repository.
 [Sample Code](./Program.cs)
@@ -44,7 +44,7 @@ Sample .NET core service app that connects to a Laserfiche Cloud or Self-Hosted 
 ### 3. Clone this repo on your local 
 
 ```
-git clone -b v1 https://github.com/Laserfiche/lf-sample-repository-api-dotnet-srv.git
+git clone -b v1 https://github.com/Laserfiche/laserfiche-api-use-cases-dotnet.git
 ```
 
 ### 4. Create a .env file
@@ -73,7 +73,7 @@ REPOSITORY_ID="<Repository ID from the 'Repository Administration' page>"
 ### 1. Clone this repo on your local machine
 
 ```
-git clone -b v1 https://github.com/Laserfiche/lf-sample-repository-api-dotnet-srv.git
+git clone -b v1 https://github.com/Laserfiche/laserfiche-api-use-cases-dotnet.git
 ```
 
 ### 2. Create a .env file
